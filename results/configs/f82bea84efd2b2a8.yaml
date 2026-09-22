@@ -1,0 +1,5 @@
+datasets:
+- cifar100
+- cub200
+purpose: P4 FIG01 decoupling CSV assembly (claim C1)
+seed: 0

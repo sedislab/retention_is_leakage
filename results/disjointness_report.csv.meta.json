@@ -1,0 +1,16 @@
+{
+  "source_hash": "cedef78149ddfa4b5480cdbea0d75d66b2f8c58e6d5f1c9e0e64b3d43f88d633",
+  "config_hash": "9f16a6c24abc5e4c",
+  "seed": 0,
+  "hostname": "kodiak",
+  "pbs_jobid": null,
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-15T19:59:07.186821+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/disjointness_report.csv",
+  "utc_end": "2026-09-15T19:59:08.729143+00:00",
+  "wall_seconds": 1.542322
+}

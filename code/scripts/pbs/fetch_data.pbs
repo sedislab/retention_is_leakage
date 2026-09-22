@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -N p3_fetch
+#PBS -q batch
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+
+python -m p3fcl.cli data --fetch --dataset "${DATASET}"

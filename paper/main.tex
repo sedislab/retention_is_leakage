@@ -1,0 +1,173 @@
+% main.tex — structural scaffold only. No argumentative prose lives here yet: per the human's
+% explicit instruction (see build/STATE.md's "CRITICAL CONTEXT" section), a separate Claude Opus
+% session writes the manuscript's actual content, reading paper/PAPER_BRIEFING.md. This file exists
+% so that (a) `make paper` and `make verify` are not missing tools when Opus needs them, and (b) the
+% figure/table `\input{}`/`\includegraphics{}` wiring is proven to compile end to end before content
+% is added on top of it.
+%
+% Document class: generic `article`, not an official ICLR/USENIX style file (none exists in this
+% repo, and downloading one was out of scope for this pass). Swap `\documentclass{article}` for the
+% target venue's official style file once chosen (RESEARCH_PLAN.md discusses ICLR as the primary
+% target) -- everything else in this file should keep working with a normal style-file swap.
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[numbers]{natbib}
+\usepackage{hyperref}
+
+\title{Retention Is Leakage: A Stability--Plasticity--Privacy Trilemma in Federated Continual Learning}
+% TODO(Opus): real author list / anonymization per venue rules.
+\author{Anonymous Author(s)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% TODO(Opus): write the abstract last, from paper/PAPER_BRIEFING.md \S1 (the one-paragraph thesis)
+% and \S4's claim-by-claim status. Lead with C1's headline number.
+\end{abstract}
+
+\section{Introduction}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S1 and \S6 point 1. Lead with the trilemma thesis and
+% C1's decoupling-ratio numbers (results/decoupling_ratio.csv).
+
+\section{Related Work}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S0 point 1 (RESEARCH_PLAN.md \S1.2) -- FCL anti-forgetting
+% methods, federated MIA (LiRA/Carlini et al.), the Jagielski et al. (ICLR 2023) result this paper's
+% thesis inverts.
+
+\section{Threat Model and the Artifact Ledger}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S3. The unified ledger abstraction (artifacts.py) is a
+% real systems contribution -- 8 artifact families (F1-F8), one interface used by 6 attacks without
+% touching method internals. TAB10 (taxonomy) belongs here.
+\begin{table}[htbp]
+  \centering
+  \input{../tables/tab10_taxonomy.tex}
+  \caption{Artifact family taxonomy (F1--F8). See \texttt{RESEARCH\_PLAN.md \S2.2} and
+    \texttt{paper/PAPER\_BRIEFING.md} \S3 for the underlying discussion.}
+  \label{tab:taxonomy}
+\end{table}
+
+\section{Claim C1: Leakage Half-Life Decouples from Accuracy Decay}
+% TODO(Opus): the flagship result -- see paper/PAPER_BRIEFING.md \S4/C1 in full. This should be the
+% longest, most detailed section. Real numbers: results/decoupling_ratio.csv (21 rows, 3 datasets x
+% 7 methods). Report the 3 honest caveats listed there (M3's three-way split, M1's non-monotonic
+% accuracy curve, M0's shallow ImageNet-R fit) -- do not smooth over them.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../figs/fig01_decoupling.pdf}
+  \caption{Retention/leakage decoupling, all 7 methods, 3 datasets, 5 seeds.}
+  \label{fig:decoupling}
+\end{figure}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../figs/fig02_halflife.pdf}
+  \caption{Leakage half-life forest plot, log-x, censored fits shown as arrows.}
+  \label{fig:halflife}
+\end{figure}
+\begin{table}[htbp]
+  \centering
+  \input{../tables/tab03_leakage.tex}
+  \caption{TPR@1\%FPR / TPR@0.1\%FPR / AUC at elapsed=0 and elapsed=max, per method/dataset.}
+  \label{tab:leakage}
+\end{table}
+\begin{table}[htbp]
+  \centering
+  \input{../tables/tab04_halflife.tex}
+  \caption{Half-life estimates with 95\% CI, $R^2$, and censoring flag.}
+  \label{tab:halflife}
+\end{table}
+
+\subsection{Supporting Evidence: Analytic Gram Inversion (H5)}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S4/C1's H5 bullet.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../figs/fig13_gram_inversion.pdf}
+  \caption{Analytic Gram-inversion cosine similarity vs.\ per-class $n$, and feature anisotropy.}
+  \label{fig:gram-inversion}
+\end{figure}
+
+\subsection{Does Secure Aggregation Help? (H11)}
+% TODO(Opus): see paper/PAPER_BRIEFING.md's dedicated H11 write-up in \S4/C1 -- a complete,
+% family-split answer (F2/F5 provably unattackable, F1 shows no detectable protection). This
+% directly pre-empts the most predictable reviewer objection; give it real space.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.7\textwidth]{../figs/fig11_secure_agg.pdf}
+  \caption{Secure-aggregation ablation for A1 (M0/F1); M4/M8 (F2/F5) are structurally unattackable
+    (not plotted -- no defined score exists to plot).}
+  \label{fig:secure-agg}
+\end{figure}
+
+\subsection{Is This an Artifact of Synthetic Client Partitions? (FIG18)}
+% TODO(Opus): see paper/PAPER_BRIEFING.md's dedicated FIG18/Camelyon17 write-up (\S4/C1 or its own
+% subsection) -- a real, PILOT-scale (M0 only, 3 seeds) natural-hospital-federation vs Dirichlet
+% comparison on Camelyon17-WILDS. Real finding: the natural partition shows HIGHER, more clearly
+% rising leakage than the synthetic Dirichlet split -- if anything, synthetic partitions UNDERSTATE
+% real-world risk for this dataset, the opposite of the "your clients are a Dirichlet artifact"
+% objection. See notes/2026-09-21_fig18_camelyon17.md for the full scope and a real data-acquisition
+% workaround (the official CodaLab download is blocked from this cluster; a verified community
+% mirror of the same public-domain data was used instead).
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.7\textwidth]{../figs/fig18_natural_federation.pdf}
+  \caption{Camelyon17: real hospital partition vs.\ synthetic Dirichlet partition, M0 (pilot scale).}
+  \label{fig:natural-federation}
+\end{figure}
+
+\section{Claim C3: Contractive Retention Admits a $T$-Independent Lifelong $\varepsilon$}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S4/C3. Real, confident treatment -- results/fig05_eps_of_T.csv.
+% Include the sharper 2026-09-21 finding: flat eps holds ONLY under unit U2, not universally.
+\begin{table}[htbp]
+  \centering
+  \input{../tables/tab02_units.tex}
+  \caption{Units of privacy (U1--U5) and their composition regime.}
+  \label{tab:units}
+\end{table}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../figs/fig05_eps_of_T.pdf}
+  \caption{Lifelong $\varepsilon(T)$ by unit of privacy, all 7 methods.}
+  \label{fig:eps-of-t}
+\end{figure}
+
+\section{Claims C2 and C4: Preliminary Evidence and Future Directions}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S4/C2 and \S4/C4. C2 is a real pilot (semantic-vs-
+% individual split, FIG03/FIG04) -- present honestly as pilot-scale. C4 is theoretical/analytical
+% only, grounded in C3's data -- do not present as empirically validated.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{../figs/fig04_semantic_vs_individual.pdf}
+  \caption{Semantic (M4) vs.\ individual (M5) retention dose-response pilot.}
+  \label{fig:semantic-vs-individual}
+\end{figure}
+
+\section{Limitations}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S2/\S4 and build/STATE.md's "Open problems" (read fresh,
+% it changes as work continues).
+
+\section{Discussion}
+% TODO(Opus): see paper/PAPER_BRIEFING.md \S6 point 8 -- the secure-aggregation pre-emption now has
+% real teeth (H11 write-up above), plus the backbone-confound finding from H12 if there's room.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../figs/fig16_roc.pdf}
+  \caption{Log-log ROC for A1, all 21 dataset/method combos (appendix candidate).}
+  \label{fig:roc}
+\end{figure}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../figs/fig17_seed_variance.pdf}
+  \caption{Per-seed spread of the headline leakage number (appendix candidate).}
+  \label{fig:seed-variance}
+\end{figure}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

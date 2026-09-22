@@ -1,0 +1,16 @@
+{
+  "source_hash": "b7508f2e82c8212e531e4d3171ba9bf0b1d301ba989892aaec62ae7954e50386",
+  "config_hash": "c94325cd3a9f2a2e",
+  "seed": 0,
+  "hostname": "n034",
+  "pbs_jobid": "158027.bcm11",
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-17T19:44:19.544680+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/a4_onset_inference.csv",
+  "utc_end": "2026-09-17T19:44:24.166648+00:00",
+  "wall_seconds": 4.621968
+}

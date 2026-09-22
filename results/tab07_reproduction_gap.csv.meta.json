@@ -1,0 +1,16 @@
+{
+  "source_hash": "ba286b2be28a30f8ba0d5301965a172b66c13269a86aaa0360e55790aa96d69b",
+  "config_hash": "46e36a79de5b282c",
+  "seed": 0,
+  "hostname": "kodiak",
+  "pbs_jobid": null,
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-16T02:27:46.692229+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/tab07_reproduction_gap.csv",
+  "utc_end": "2026-09-16T02:27:48.215140+00:00",
+  "wall_seconds": 1.522911
+}

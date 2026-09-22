@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -N p3_prompt_val
+#PBS -q gpu
+#PBS -l select=1:ncpus=8:ngpus=1:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4 cuda/12.9
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=8
+
+python scripts/run_prompt_method.py \
+  --dataset "${DATASET:-cifar100}" \
+  --n_tasks "${NTASKS:-2}" \
+  --n_clients "${NCLIENTS:-2}" \
+  --images_per_class_cap "${CAP:-20}" \
+  --local_epochs "${LOCAL_EPOCHS:-1}" \
+  --seed "${SEED:-0}"

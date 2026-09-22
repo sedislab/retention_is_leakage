@@ -1,0 +1,6 @@
+count: 128
+dataset: imagenet_r
+method: m4_proto
+purpose: shadow federation runner
+seed: 0
+start: 3840

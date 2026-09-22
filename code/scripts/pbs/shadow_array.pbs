@@ -1,0 +1,38 @@
+#!/bin/bash
+#PBS -N p3_shadow
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -J 0-31%30
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+
+# CHUNK=128, -J 0-31: 4000-shadow headline budget (configs/attack_lira.yaml) / 128 = 31.25 -> 32
+# tasks. Measured on real CIFAR-100 (job 157138/157139): ~23 min/task for M4 (the slower method),
+# ~30-31*8=248-240 concurrent cores per array at %30, so two arrays (M4 + M8) submitted together
+# stay under the 512-core per-user cap with headroom. Keep this in sync with attack_lira.yaml.
+CHUNK=128
+IDX="${PBS_ARRAY_INDEX:-0}"
+START=$(( IDX * CHUNK ))
+SEED="${SEED:-0}"
+OUT_DIR=/data/islamm/retention_leakage/shadows/"${DATASET}"/"${METHOD}"
+# seed 0 keeps the original (pre-P4) directory layout so every already-computed store stays valid;
+# P4's extra seeds (1,2,3,4,...) for the FIG01 headline get their own subdirectory.
+if [ "$SEED" != "0" ]; then
+  OUT_DIR="$OUT_DIR/seed${SEED}"
+fi
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "${DATASET}" --method "${METHOD}" \
+  --start "$START" --count "$CHUNK" \
+  --workers 8 \
+  --set stream.base_seed="${SEED}" \
+  --out "$OUT_DIR"

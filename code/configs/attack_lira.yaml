@@ -1,0 +1,44 @@
+# A1 cross-task LiRA + shadow-federation runner config (Phase P3). Kept separate from base.yaml so
+# the shadow runner (scripts/run_shadows.py) does not need to parse method-zoo config it doesn't use.
+seed: 0
+
+# The base stream every shadow perturbs. Fixed across the whole shadow store for a given
+# (dataset, method) -- shadow_runner.build_targets is a pure function of this plus `targets` below,
+# so every array task recomputes the identical target pool independently (no cross-task read needed
+# for correctness; `targets.json` in the shadow store is a convenience copy only).
+stream:
+  n_tasks: 10
+  n_clients: 10
+  beta: 0.5
+  base_seed: 0
+
+# Target pool: `per_shard` examples sampled from each (client, task) shard of the base stream, each
+# independently resampled IN/OUT per shadow at `p_in` (shadow_runner._in_bit). `per_shard: 5` on a
+# 10-task/10-client CIFAR-100 stream gives on the order of a few hundred targets -- well inside the
+# "10-100 KB per shadow" budget (04_METHODS_AND_ATTACKS.md §3) since a target's payload is one float
+# per round, not a feature vector.
+targets:
+  per_shard: 5
+  p_in: 0.5
+
+shadow:
+  n_shadows: 4000        # headline budget for cacheable methods (04_METHODS_AND_ATTACKS.md §3)
+  n_shadows_offline: 96  # M3/M4-LoRA/M6/M7 (GPU, offline-only LiRA)
+  # 128, not the originally-planned 16: measured on real CIFAR-100 (job 157138/157139), M4/M8
+  # shadows run far cheaper than the SGD-trained methods §4.2's "20-40 min/task" guidance was sized
+  # for (~11s/shadow for M4's brute-force nearest-prototype eval, ~1.5s/shadow for M8's closed-form
+  # solve, both per 8-way-parallel wave) -- CHUNK=16 finished a whole array task in under 3 minutes,
+  # which is short but the real problem is 250 array tasks of scheduler overhead for no reason.
+  # CHUNK=128 -> 32 array tasks, ~23 min/task for M4 (the slower of the two). Keep `pbs/shadow_array.pbs`'s
+  # `CHUNK=` in sync with this if either changes.
+  chunk_size: 128
+  online: true            # IN and OUT shadows; false = offline (OUT only)
+  calibration_frac: 0.8   # fraction of shadows used to calibrate LiRA's IN/OUT Gaussians; the rest
+                           # are held out as evaluation targets (CLAUDE.md non-negotiable #6) --
+                           # scripts/run_lira.py's leave-one-out-over-shadows split
+
+lira:
+  trajectory: true         # summarise the per-round series, not just the last round (H3, FIG07)
+  view: full                # full | task | final — the observation-set ablation axis
+
+calibration_split: shadow   # attack hyperparameters are selected here, NEVER on the eval split

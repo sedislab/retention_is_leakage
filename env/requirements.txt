@@ -1,0 +1,11 @@
+# Core (CPU-only, numpy-centric) — pinned to versions available for python/3.10.4 on Kodiak at
+# the time of P0 (2026-09-14). GPU extras (torch/torchvision/timm/wilds) are installed separately in
+# Phase P1 once the probe job confirms the driver/CUDA pairing (01_KODIAK.md §2).
+numpy==1.26.4
+scipy==1.13.1
+pandas==2.2.2
+pyyaml==6.0.2
+matplotlib==3.9.0
+tqdm==4.66.4
+pytest==8.2.2
+ruff==0.4.10

@@ -1,0 +1,84 @@
+{
+  "camelyon17": {
+    "bytes": 10654814495,
+    "fetched_utc": "2026-09-15T21:24:57.795593+00:00",
+    "license": "CC0 (Camelyon17 / WILDS, de-identified histopathology patches)",
+    "mirrors_tried": [],
+    "n_classes": 2,
+    "n_images_full": 455954,
+    "n_images_subsampled": 4998,
+    "natural_partition_field": "domain (hospital)",
+    "prepare_source_hash": "94a8e118760ad834ee8c5ce3cb7cca247d04a8fce490450c9a6eb853a264dc8b",
+    "prepared_utc": "2026-09-22T04:22:10.179497+00:00",
+    "splits": {
+      "ref": 500,
+      "test": 500,
+      "train": 3998
+    },
+    "subsample_note": "class+hospital-stratified subsample to ~5000 of 455954",
+    "url_used": "wilds.get_dataset(camelyon17, download=True)"
+  },
+  "cifar100": {
+    "bytes": 169001437,
+    "fetched_utc": "2026-09-15T19:36:57.211249+00:00",
+    "license": "MIT-like research use (Krizhevsky, 2009)",
+    "mirrors_tried": [
+      "https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz"
+    ],
+    "n_classes": 100,
+    "n_images": 60000,
+    "natural_partition_field": null,
+    "prepare_source_hash": "e1c752700c8e8e7d7f72cc076690ee3473add18bcb4043358e95543c6a6ceac9",
+    "prepared_utc": "2026-09-15T19:39:03.078832+00:00",
+    "sha256": "85cd44d02ba6437773c5bbd22e183051d648de2e7d6b014e1ef29b855ba677a7",
+    "splits": {
+      "ref": 10000,
+      "test": 10000,
+      "train": 40000
+    },
+    "url_used": "https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz"
+  },
+  "cub200": {
+    "bytes": 1150585339,
+    "fetched_utc": "2026-09-15T19:37:22.571095+00:00",
+    "license": "Research use (Caltech-UCSD Birds-200-2011)",
+    "mirrors_tried": [
+      "https://data.caltech.edu/records/65de6-vp158/files/CUB_200_2011.tgz",
+      "http://www.vision.caltech.edu/visipedia-data/CUB-200-2011/CUB_200_2011.tgz"
+    ],
+    "n_classes": 200,
+    "n_images": 11788,
+    "natural_partition_field": null,
+    "prepare_source_hash": "e1c752700c8e8e7d7f72cc076690ee3473add18bcb4043358e95543c6a6ceac9",
+    "prepared_utc": "2026-09-15T19:38:14.486299+00:00",
+    "sha256": "0c685df5597a8b24909f6a7c9db6d11e008733779a671760afef78feb49bf081",
+    "splits": {
+      "ref": 1000,
+      "test": 5794,
+      "train": 4994
+    },
+    "url_used": "https://data.caltech.edu/records/65de6-vp158/files/CUB_200_2011.tgz"
+  },
+  "imagenet_r": {
+    "bytes": 2191079936,
+    "caveat": "ViT-B/16 IN21k backbone has seen ImageNet-21k, which overlaps these classes \u2014 state once in the paper, per 02_DATASETS.md \u00a73.",
+    "fetched_utc": "2026-09-15T19:40:51.963644+00:00",
+    "license": "Research use (Hendrycks et al., 2021)",
+    "mirrors_tried": [
+      "https://people.eecs.berkeley.edu/~hendrycks/imagenet-r.tar",
+      "https://huggingface.co/datasets/axiong/imagenet-r/resolve/main/imagenet-r.tar"
+    ],
+    "n_classes": 200,
+    "n_images": 30000,
+    "natural_partition_field": null,
+    "prepare_source_hash": "967198e0709e26a9346997f0aaf55cd100d63173c59e0d9ab8114ce7d51f2a31",
+    "prepared_utc": "2026-09-15T19:41:52.609483+00:00",
+    "sha256": "18c6bf493b39a0d975d48e587437f562caab9c52ae6327dcfa9dd8eb54aa1b52",
+    "splits": {
+      "ref": 3088,
+      "test": 2994,
+      "train": 23918
+    },
+    "url_used": "https://people.eecs.berkeley.edu/~hendrycks/imagenet-r.tar"
+  }
+}

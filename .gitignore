@@ -1,0 +1,38 @@
+# large / generated — never git add these
+raw/
+raw_data/
+datasets/
+features/
+shadows/
+runs/
+envs/
+logs/
+hf/
+torch/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/**/*.pyc
+
+# data caches and checkpoints
+*.npz
+*.npy
+*.pt
+*.pth
+
+# figures/tables are generated, never hand-edited, but ARE regenerable from CSV —
+# still keep them out of git; the CSVs under results/ are the tracked evidence.
+# figs/*.pdf
+# figs/*.png
+# tables/*.tex
+
+# paper build artifacts
+paper/**/*.aux
+paper/**/*.log
+paper/**/*.out
+paper/**/*.fls
+paper/**/*.fdb_latexmk
+paper/**/*.synctex.gz
+
+# keep: results/*.csv, results/*.meta.json, results/RUN_LOG.jsonl, code/, build/, agents/, notes/

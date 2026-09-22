@@ -1,0 +1,6 @@
+count: 128
+dataset: cifar100
+method: m8_analytic
+purpose: shadow federation runner
+seed: 0
+start: 256

@@ -1,0 +1,46 @@
+#!/bin/bash
+#PBS -N p3_probe
+#PBS -q gpu
+#PBS -l select=1:ncpus=8:ngpus=1
+#PBS -l walltime=00:10:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -uo pipefail
+cd /data/islamm/retention_leakage
+
+echo "=== hostname / basics ==="
+hostname
+echo "---nproc---"; nproc
+echo "---mem---"; free -g | head -2
+echo "---PBS vars---"
+echo "PBS_JOBID=$PBS_JOBID PBS_ARRAY_INDEX=${PBS_ARRAY_INDEX:-none}"
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
+
+echo "=== nvidia-smi ==="
+nvidia-smi || echo "NO GPU VISIBLE"
+echo "---nvidia-smi -L---"
+nvidia-smi -L 2>&1 || true
+
+echo "=== CUDA module vs driver ==="
+for m in cuda/13.2 cuda/12.9 cuda/11.8; do
+  echo "--- trying module $m ---"
+  module load "$m" 2>&1 && nvcc --version 2>&1 | tail -3
+  module unload "$m" 2>&1
+done
+
+echo "=== internet from compute node ==="
+curl -sI -m 8 https://pypi.org 2>&1 | head -5 || echo "CURL FAILED (pypi)"
+curl -sI -m 8 https://data.caltech.edu 2>&1 | head -3 || echo "CURL FAILED (caltech)"
+
+echo "=== local scratch ==="
+ls -ld /tmp /scratch /local 2>&1
+df -h /tmp 2>&1
+
+echo "=== PBS_NODEFILE ==="
+cat "$PBS_NODEFILE" 2>&1
+
+echo "=== python on compute node ==="
+module load python/3.10.4 2>&1
+python3 --version 2>&1
+
+echo "=== DONE ==="

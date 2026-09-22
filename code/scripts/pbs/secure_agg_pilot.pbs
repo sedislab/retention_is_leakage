@@ -1,0 +1,37 @@
+#!/bin/bash
+#PBS -N p3_secagg_pilot
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -J 0-7%8
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+
+# H11 secure-aggregation PILOT (agents/OPEN_QUESTIONS.md's highest-priority remaining item --
+# "Blast radius: High for reviewer reception... Prioritize it"): does A1's model-delta reconstruction
+# survive if the adversary can only see Ledger.aggregate_view()? 1,024-shadow budget (reduced, not the
+# 4,096 headline budget -- see notes/2026-09-21_secure_agg_a1.md), CHUNK=128 -> 8 array tasks.
+# DATASET/METHOD/SEED as usual; adversary_view=secure_agg switches the reconstruction inside
+# shadow_runner.py, output isolated under a secure_agg subdir so it never collides with the existing
+# full-view M0 shadows.
+CHUNK=128
+IDX="${PBS_ARRAY_INDEX:-0}"
+START=$(( IDX * CHUNK ))
+SEED="${SEED:-0}"
+OUT_DIR=/data/islamm/retention_leakage/shadows/"${DATASET}"/"${METHOD}"/secure_agg/seed"${SEED}"
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "${DATASET}" --method "${METHOD}" \
+  --start "$START" --count "$CHUNK" \
+  --workers 8 \
+  --set stream.base_seed="${SEED}" \
+  --set adversary_view=secure_agg \
+  --out "$OUT_DIR"

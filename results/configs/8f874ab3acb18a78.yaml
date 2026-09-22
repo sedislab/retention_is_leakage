@@ -1,0 +1,15 @@
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+methods:
+- m0_fedavg
+- m1_glfc
+- m2_target
+- m3_fot
+- m4_proto
+- m5_hybrid_replay
+- m8_analytic
+n_seeds: 5
+purpose: 'FIG17 seed-variance panel: per-seed TPR@1%FPR at elapsed=0'
+seed: 0

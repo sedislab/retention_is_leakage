@@ -1,0 +1,9 @@
+calibration_frac: 0.8
+dataset: cifar100
+method: m0_fedavg
+n_calib: 3277
+n_eval: 819
+n_shadows: 4096
+purpose: A1 cross-task LiRA membership report (H2/H3/H11)
+seed: 0
+stream_seed: 2

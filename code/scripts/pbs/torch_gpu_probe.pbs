@@ -1,0 +1,30 @@
+#!/bin/bash
+#PBS -N p3_torch_probe
+#PBS -q gpu
+#PBS -l select=1:ncpus=4:ngpus=1
+#PBS -l walltime=00:10:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -uo pipefail
+cd /data/islamm/retention_leakage
+
+module load python/3.10.4
+source envs/p3fcl/bin/activate
+
+python - <<'PYEOF'
+import torch
+print("torch", torch.__version__)
+print("cuda available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("device name:", torch.cuda.get_device_name(0))
+    print("device capability:", torch.cuda.get_device_capability(0))
+    print("compiled arch list:", torch.cuda.get_arch_list())
+    x = torch.randn(2048, 2048, device="cuda")
+    y = torch.randn(2048, 2048, device="cuda")
+    z = x @ y
+    torch.cuda.synchronize()
+    print("matmul OK, mean:", z.mean().item())
+else:
+    print("NO CUDA AVAILABLE TO TORCH")
+PYEOF
+echo "=== DONE ==="

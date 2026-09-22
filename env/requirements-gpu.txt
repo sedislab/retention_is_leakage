@@ -1,0 +1,18 @@
+# GPU extras (Phase P1+). Installed separately from env/requirements.txt because they need a
+# non-default PyPI index (the CUDA-bundled torch build) and are only needed on the login node for
+# `pip install` itself — actual execution always happens on a `gpu`-queue node.
+#
+# Install with:
+#   pip install --index-url https://download.pytorch.org/whl/cu121 torch==2.5.1+cu121 torchvision==0.20.1+cu121
+#   pip install timm==1.0.29 wilds==2.0.0
+#
+# Why cu121 and not a newer cuXXX build: the probe job (build/STATE.md, 2026-09-15) found the
+# `gpu`-queue driver is 580.178.04, reporting a CUDA *runtime* ceiling of 13.0. NVIDIA drivers are
+# backward compatible with older CUDA runtimes, so a cu121 (CUDA 12.1) wheel runs fine underneath a
+# 13.0-ceiling driver; there is no need to chase the newest cuXXX tag. GPUs are Tesla P100
+# (Pascal, sm_60) — confirmed this torch build actually executes on them via
+# `code/scripts/pbs/torch_gpu_probe.pbs` before trusting it for real feature extraction.
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+timm==1.0.29
+wilds==2.0.0

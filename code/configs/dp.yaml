@@ -1,0 +1,10 @@
+# DP accounting sweep config (Phase P6/P7). `unit` must be one of units.Unit's values (U1-U5).
+seed: 0
+
+dp:
+  unit: U2
+  delta: 1.0e-5
+  sigma: 2.0
+  eps_targets: [0.5, 1, 2, 4, 8]
+  T_values: [1, 10, 50, 1000]
+  mechanism: analytic_gaussian   # dp.mechanisms.analytic_gaussian_sigma

@@ -1,0 +1,5 @@
+datasets:
+- cub200
+- cifar100
+purpose: FIG13 Gram inversion n-curve (H5)
+seed: 0

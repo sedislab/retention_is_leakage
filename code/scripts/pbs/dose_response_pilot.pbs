@@ -1,0 +1,35 @@
+#!/bin/bash
+#PBS -N p3_dose_pilot
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -J 0-7%8
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+
+# P5 dose-response PILOT (small-scale, clearly labeled preliminary -- see
+# notes/2026-09-21_p5_dose_response_pilot.md): 1024-shadow budget (not the 4,096 headline budget),
+# CHUNK=128 -> 8 array tasks. DATASET/METHOD/SEED as usual; KNOB_NAME/KNOB_VALUE set the one retention
+# knob under test via method_config_override, output isolated under a dose_<knob>_<value> subdir so
+# different knob values never collide.
+CHUNK=128
+IDX="${PBS_ARRAY_INDEX:-0}"
+START=$(( IDX * CHUNK ))
+SEED="${SEED:-0}"
+OUT_DIR=/data/islamm/retention_leakage/shadows/"${DATASET}"/"${METHOD}"/dose_"${KNOB_NAME}"_"${KNOB_VALUE}"/seed"${SEED}"
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "${DATASET}" --method "${METHOD}" \
+  --start "$START" --count "$CHUNK" \
+  --workers 8 \
+  --set stream.base_seed="${SEED}" \
+  --set method_config_override."${KNOB_NAME}"="${KNOB_VALUE}" \
+  --out "$OUT_DIR"

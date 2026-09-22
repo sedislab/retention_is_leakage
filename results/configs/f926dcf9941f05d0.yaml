@@ -1,0 +1,8 @@
+calibration_frac: 0.8
+dataset: cifar100
+method: m4_proto
+n_calib: 51
+n_eval: 13
+n_shadows: 64
+purpose: A1 cross-task LiRA membership report (H2/H3/H11)
+seed: 0

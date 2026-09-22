@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "p3fcl"
+version = "0.1.0"
+description = "Retention Is Leakage: audit + lifelong-DP accounting for federated continual learning"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26,<2.0",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "pyyaml>=6.0",
+    "matplotlib>=3.8",
+    "tqdm>=4.66",
+]
+
+# GPU extras cannot be pinned exactly here — they need the CUDA-specific PyPI index
+# (https://download.pytorch.org/whl/cu121, see env/requirements-gpu.txt for the tested versions and
+# the exact install command). This extra documents the loose requirement for tooling that reads
+# pyproject.toml; do not `pip install .[gpu]` and expect the right CUDA build — use
+# env/requirements-gpu.txt instead.
+[project.optional-dependencies]
+gpu = [
+    "torch>=2.5",
+    "torchvision>=0.20",
+    "timm>=1.0",
+    "wilds>=2.0",
+    "pillow",
+]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

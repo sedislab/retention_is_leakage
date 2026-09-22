@@ -1,0 +1,38 @@
+#!/bin/bash
+#PBS -N p3_fig18_pilot
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -J 0-7%8
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+
+# FIG18 (Camelyon17 natural federation vs Dirichlet, `00_BUILD_PLAN.md`'s "never cut" list) PILOT:
+# 1,024-shadow budget (reduced, not the 4,096 headline budget), CHUNK=128 -> 8 array tasks.
+# DATASET=camelyon17, METHOD=m0_fedavg, SEED as usual; N_CLIENTS=1 (natural) or 10 (dirichlet) via
+# PARTITION, use_domain_field=true switches shadow_runner.py to the domain-incremental
+# (one-task-per-hospital) stream instead of the default class-incremental split (Camelyon17 is
+# binary-label, so class-incremental is not meaningful for it). Output isolated under a
+# fig18_<partition> subdir so the two arms never collide.
+CHUNK=128
+IDX="${PBS_ARRAY_INDEX:-0}"
+START=$(( IDX * CHUNK ))
+SEED="${SEED:-0}"
+OUT_DIR=/data/islamm/retention_leakage/shadows/"${DATASET}"/"${METHOD}"/fig18_"${PARTITION}"/seed"${SEED}"
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "${DATASET}" --method "${METHOD}" \
+  --start "$START" --count "$CHUNK" \
+  --workers 8 \
+  --set stream.base_seed="${SEED}" \
+  --set stream.use_domain_field=true \
+  --set stream.n_clients="${N_CLIENTS}" \
+  --out "$OUT_DIR"
