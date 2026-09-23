@@ -56,10 +56,15 @@ class FedAvgSequential(FCLMethod):
         deltas, weights = [], []
         for shard in client_shards:
             idx = np.array(shard.ids, dtype=int)
+            self.update_classes_seen(y[idx])
             Wc = self._local_train(self.W, X[idx], y[idx])
             delta = Wc - self.W
             deltas.append(delta)
             weights.append(len(idx))
+        weights = np.array(weights, dtype=float)
+        total_weight = float(weights.sum())
+        for shard, delta, w in zip(client_shards, deltas, weights):
+            idx = np.array(shard.ids, dtype=int)
             records.append(
                 ArtifactRecord(
                     round=self._round,
@@ -70,15 +75,19 @@ class FedAvgSequential(FCLMethod):
                     touched=frozenset(int(i) for i in idx),
                     n_touched=len(idx),
                     passes_over_data=self.local_epochs,
-                    meta={"local_epochs": self.local_epochs, "lr": self.lr},
+                    # FX4b (08_FIX_PLAN.md R3): the exact weight the server gave this client in this
+                    # round's FedAvg -- for M0 this is exactly the raw shard size (no buffer, no
+                    # distillation), identical to `n_touched`, but recorded explicitly so
+                    # `_reconstruct_running_w` never has to assume `n_touched` IS the true weight for
+                    # methods where the two diverge (M1/M2/M3/M5).
+                    meta={"local_epochs": self.local_epochs, "lr": self.lr, "agg_weight": float(w)},
                 )
             )
-        weights = np.array(weights, dtype=float)
-        if weights.sum() > 0:
-            avg_delta = sum(w * d for w, d in zip(weights, deltas)) / weights.sum()
+        if total_weight > 0:
+            avg_delta = sum(w * d for w, d in zip(weights, deltas)) / total_weight
             self.W = self.W + avg_delta
         self._round += 1
         return records
 
     def predict(self, X) -> np.ndarray:
-        return np.argmax(X @ self.W, axis=1)
+        return np.argmax(self.mask_unseen_logits(X @ self.W), axis=1)

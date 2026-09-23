@@ -80,7 +80,7 @@ def main() -> int:
             "retention_knob": method.spec.retention_knob_name,
             "task_disjoint": report.task_disjoint,
             "violations": ";".join(report.violations),
-            "final_avg_acc_synthetic": round(result["final_avg_acc"], 4),
+            "final_avg_acc_synthetic": round(result["final_avg_acc_train"], 4),
         })
         print(f"{label}: task_disjoint={report.task_disjoint} violations={report.violations}")
 

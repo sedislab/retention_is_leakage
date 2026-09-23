@@ -49,6 +49,7 @@ class AnalyticFCL(FCLMethod):
         for shard in client_shards:
             idx = np.array(shard.ids, dtype=int)
             Xc, yc = X[idx], y[idx]
+            self.update_classes_seen(yc)
             Rc = Xc.T @ Xc + self.ridge_lambda * np.eye(self.d)
             Qc = Xc.T @ self._one_hot(yc)
             self._R += Rc
@@ -73,4 +74,4 @@ class AnalyticFCL(FCLMethod):
         if self._R is None:
             return np.zeros(len(X), dtype=int)
         W = np.linalg.solve(self._R, self._Q)
-        return np.argmax(X @ W, axis=1)
+        return np.argmax(self.mask_unseen_logits(X @ W), axis=1)

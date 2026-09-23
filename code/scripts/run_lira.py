@@ -40,13 +40,28 @@ from p3fcl import rng as rng_mod  # noqa: E402
 _EPS = 1e-6
 
 
-def load_shadow_store(shadow_dir: Path) -> dict:
+def load_shadow_store(shadow_dir: Path, view: str = "full", max_shadows: int | None = None) -> dict:
+    """Load a shadow store written by `shadow_runner._run_one_shadow`.
+
+    FX4h (`08_FIX_PLAN.md` §4h) gave shadow npz files a `views` array plus one `scores_<view>` key
+    per applicable view (`full`, `aggregate`, `global`). Pre-fix shadow files predate that and carry
+    a single bare `scores` key -- those are treated as view `full` (the only view they ever computed)
+    regardless of the `view` argument, so old stores keep loading unchanged.
+
+    `max_shadows`: if given, only `shadow_id < max_shadows` files are loaded (a store's `shadow_*.npz`
+    filenames ARE the shadow id, zero-padded, so this is a filename-prefix restriction, not a
+    behind-the-scenes resample) -- FX2's `a1_m0_budget_check.csv` needs M0's existing 4096-shadow/
+    5-seed store subsampled down to the 1024-shadow budget every other method got in wave V2, without
+    regenerating or duplicating any files.
+    """
     import json
 
     targets = json.loads((shadow_dir / "targets.json").read_text())
     paths = sorted(shadow_dir.glob("shadow_*.npz"))
+    if max_shadows is not None:
+        paths = [p for p in paths if int(p.stem.split("_")[1]) < max_shadows]
     if not paths:
-        raise FileNotFoundError(f"no shadow_*.npz files under {shadow_dir}")
+        raise FileNotFoundError(f"no shadow_*.npz files under {shadow_dir} (max_shadows={max_shadows})")
 
     shadow_ids, all_scores, all_in_out = [], [], []
     ref_target_ids = None
@@ -58,7 +73,15 @@ def load_shadow_store(shadow_dir: Path) -> dict:
             elif not np.array_equal(tids, ref_target_ids):
                 raise ValueError(f"{p} has a different target_ids ordering than the rest of the store")
             shadow_ids.append(int(d["shadow_id"]))
-            all_scores.append(d["scores"])
+            if "views" in d.files:
+                views_present = {str(v) for v in d["views"]}
+                if view not in views_present:
+                    raise ValueError(f"{p} has views {sorted(views_present)}, requested {view!r}")
+                all_scores.append(d[f"scores_{view}"])
+            else:
+                if view != "full":
+                    raise ValueError(f"{p} is a pre-FX4h shadow file (bare 'scores' key); only view='full' is available")
+                all_scores.append(d["scores"])
             all_in_out.append(d["in_out"])
 
     order = np.argsort(shadow_ids)
@@ -70,6 +93,7 @@ def load_shadow_store(shadow_dir: Path) -> dict:
         "scores": scores,
         "in_out": in_out,
         "n_rounds": scores.shape[2],
+        "view": view,
     }
 
 

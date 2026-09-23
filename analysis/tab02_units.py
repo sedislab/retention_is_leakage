@@ -17,15 +17,18 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 from p3fcl.plotting import latex_escape  # noqa: E402
 from p3fcl.units import Unit, neighbouring  # noqa: E402
 
-# Which composition regime `dp/accountant.py::account()` actually routes each unit to, and which
-# claim/hypothesis it is load-bearing for -- both taken directly from that function's own routing
-# logic and from agents/OPEN_QUESTIONS.md, not invented for this table.
+# FX1 (08_FIX_PLAN.md §6) rewrote account() as one unified rule for every unit: eps(T) = max over
+# unit instances u of eps_gaussian_composed(sigma, m_T(u), delta), where m_T(u) counts releases that
+# touched u's data by horizon T. No unit gets a hard-coded routing branch any more -- "parallel
+# composition" for a task-disjoint ledger under U2 is just what falls out when m_T stays at 1 forever
+# because no later release ever re-touches an already-released shard. Text below describes the
+# resulting behavior, not a branch in the code.
 _REGIME = {
-    Unit.EXAMPLE: "Sequential composition over all releases that touch the example (no special-casing)",
-    Unit.TASK: "Parallel composition IF the ledger is task-disjoint (flat eps(T)); else sequential",
-    Unit.CLIENT_BOUNDED: "Sequential composition over the fixed horizon T",
-    Unit.CLIENT_LIFELONG: "Sequential composition over the *entire* observed stream, unconditionally",
-    Unit.INDIVIDUAL: "Sequential composition over a person's recurring participation under a renewal model",
+    Unit.EXAMPLE: "m_T(id) = releases touching that example by T, maximized over ids; flat iff no example is ever re-touched (U5 routes here too, see neighbouring(U5))",
+    Unit.TASK: "m_T(client,task) = releases touching that shard by T; flat (=1) iff task-disjoint, else grows with every re-touch (replay/regularizer)",
+    Unit.CLIENT_BOUNDED: "m_T over a fixed-width rolling window (default 3 tasks) of one client's data, worst case over every window start; plateaus at the window width if no replay reaches back that far",
+    Unit.CLIENT_LIFELONG: "m_T over one client's ENTIRE history so far (tasks 0..T-1) -- grows at least linearly in T even with zero replay, since every task's own release still counts",
+    Unit.INDIVIDUAL: "Identical to U1 under this project's one-person-one-example renewal model; not accounted separately",
 }
 _RELEVANCE = {
     Unit.EXAMPLE: "Baseline unit most DP-SGD-in-FL papers use implicitly",

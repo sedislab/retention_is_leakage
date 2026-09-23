@@ -1,0 +1,28 @@
+#!/bin/bash
+#PBS -N fig18v2_test
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=00:20:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/build/logs/fx_wave3_fig18_v2_test.log
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+
+for PARTITION in natural dirichlet; do
+  SET_ARGS=(--set stream.base_seed=0 --set stream.use_domain_field=true --set stream.n_clients=5)
+  if [ "$PARTITION" = "natural" ]; then
+    SET_ARGS+=(--set stream.client_field=slide)
+  fi
+  python -m p3fcl.cli shadows \
+    --config configs/attack_lira.yaml \
+    --dataset camelyon17 --method m0_fedavg \
+    --start 0 --count 8 \
+    --workers 4 \
+    "${SET_ARGS[@]}" \
+    --out /data/islamm/retention_leakage/shadows_v2/camelyon17/m0_fedavg/fig18_v2_test_${PARTITION}/seed0
+  echo "=== $PARTITION done ==="
+done

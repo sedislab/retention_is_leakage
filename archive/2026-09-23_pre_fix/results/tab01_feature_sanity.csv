@@ -1,0 +1,9 @@
+dataset,backbone,n_train,n_test,feature_dim,top1_acc
+cifar100,vit_base_patch16_224.augreg_in21k,40000,10000,768,0.875000
+imagenet_r,vit_base_patch16_224.augreg_in21k,23918,2994,768,0.658985
+cub200,vit_base_patch16_224.augreg_in21k,4994,5794,768,0.882465
+camelyon17,vit_base_patch16_224.augreg_in21k,48000,6000,768,0.972667
+cifar100,vit_base_patch14_dinov2.lvd142m,40000,10000,768,0.902700
+imagenet_r,vit_base_patch14_dinov2.lvd142m,23918,2994,768,0.830327
+cub200,vit_base_patch14_dinov2.lvd142m,4994,5794,768,0.901795
+camelyon17,vit_base_patch14_dinov2.lvd142m,48000,6000,768,0.969500

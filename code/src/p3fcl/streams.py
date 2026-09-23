@@ -67,6 +67,34 @@ def natural_partition(domain_field, idx) -> dict:
     return {k: np.array(sorted(v), dtype=int) for k, v in out.items()}
 
 
+def natural_chunked_partition(field, idx, n_clients: int, seed: int) -> list:
+    """`08_FIX_PLAN.md`'s H13 fix ("matched-N-client redesign"): groups `idx` by `field`'s distinct
+    values (e.g. a Camelyon17 slide id) -- a genuine, indivisible physical unit that must never split
+    across clients, unlike `dirichlet_partition`'s per-class random draw which ignores any such
+    structure entirely -- then distributes those WHOLE groups across `n_clients` buckets via a seeded
+    shuffle of the group order followed by round-robin assignment (not a per-class Dirichlet draw, and
+    not a fixed sorted-order assignment either: the shuffle gives genuine seed-to-seed stream variance,
+    which CLAUDE.md non-negotiable #4's >=3-seed requirement needs; round-robin, rather than contiguous
+    chunking, gives better client-size balance on average without ever rebalancing WITHIN a group).
+    Client sizes are whatever falls out of the real group-size distribution -- no attempt to equalize
+    them, since imposing balance would defeat the point of testing a real distribution against
+    Dirichlet's synthetic one. Returns one sorted id array per client, `0..n_clients-1`."""
+    idx = np.asarray(idx)
+    field = np.asarray(field)
+    groups: dict = {}
+    for i in idx:
+        v = field[i]
+        key = v.item() if hasattr(v, "item") else v
+        groups.setdefault(key, []).append(int(i))
+    group_keys = sorted(groups.keys())
+    r = rng_mod.seeded("streams.natural_chunked_partition", seed)
+    order = r.permutation(len(group_keys))
+    buckets: list = [[] for _ in range(n_clients)]
+    for j, gi in enumerate(order):
+        buckets[j % n_clients].extend(groups[group_keys[gi]])
+    return [np.array(sorted(b), dtype=int) for b in buckets]
+
+
 def domain_incremental_tasks(domain_field, idx, task_order) -> list:
     """One task per domain value, in `task_order`. Returns a list of id-lists, one per task."""
     idx = np.asarray(idx)
@@ -78,10 +106,40 @@ def domain_incremental_tasks(domain_field, idx, task_order) -> list:
     return tasks
 
 
-def build_stream(labels, idx, n_tasks: int, n_clients: int, beta: float, seed: int, domain_field=None) -> list:
+def task_eval_sets(y_eval, idx_eval, n_tasks: int, seed: int, domain_field_eval=None) -> list:
+    """FX4a (08_FIX_PLAN.md R1): eval-split ids per task, using the exact same task-to-class (or
+    task-to-domain) partition `build_stream` used for the *training* stream -- `class_incremental_tasks`
+    depends only on the class universe + `n_tasks` + `seed` (not on which ids are passed), so calling
+    it again here with the eval split's own labels reproduces the identical partition as long as the
+    eval split covers the same classes. Domain-incremental: recomputes the domain list from the eval
+    split's own domain field (assumes -- and callers should confirm -- the eval split covers the same
+    domains as train; a domain absent from eval simply gets an empty task, handled by callers)."""
+    idx_eval = np.asarray(idx_eval)
+    y_eval = np.asarray(y_eval)
+    if domain_field_eval is not None:
+        domain_field_eval = np.asarray(domain_field_eval)
+        domains = sorted(set(domain_field_eval[idx_eval].tolist()))
+        return domain_incremental_tasks(domain_field_eval, idx_eval, domains)
+    task_classes = class_incremental_tasks(y_eval, n_tasks, seed)
+    out = []
+    for classes in task_classes:
+        mask = np.isin(y_eval[idx_eval], classes)
+        out.append(idx_eval[mask].tolist())
+    return out
+
+
+def build_stream(
+    labels, idx, n_tasks: int, n_clients: int, beta: float, seed: int, domain_field=None, client_field=None,
+) -> list:
     """Class-incremental by default. If `domain_field` is given, one task per domain value instead
-    (`n_tasks` is then ignored). Returns `stream[t] = list[Shard]`, one Shard per client that
-    participates in task `t` (clients with zero assigned ids in a task are omitted, not zero-padded)."""
+    (`n_tasks` is then ignored). If `client_field` is given, each task's within-task client split uses
+    `natural_chunked_partition` (grouping by that field's real values, e.g. a Camelyon17 slide id, into
+    `n_clients` buckets) instead of `dirichlet_partition`'s random per-class draw -- `08_FIX_PLAN.md`'s
+    H13 "matched-N-client redesign": both partition strategies can now share the same `n_clients`, so a
+    real-vs-synthetic client-structure comparison no longer also confounds client COUNT (`beta` is
+    ignored when `client_field` is given, since there is no Dirichlet draw to concentrate). Returns
+    `stream[t] = list[Shard]`, one Shard per client that participates in task `t` (clients with zero
+    assigned ids in a task are omitted, not zero-padded)."""
     idx = np.asarray(idx)
     labels = np.asarray(labels)
     if domain_field is not None:
@@ -95,9 +153,16 @@ def build_stream(labels, idx, n_tasks: int, n_clients: int, beta: float, seed: i
             mask = np.isin(labels[idx], classes)
             task_id_lists.append(idx[mask].tolist())
 
+    if client_field is not None:
+        client_field = np.asarray(client_field)
+
     stream: list = []
     for t, ids_t in enumerate(task_id_lists):
-        client_ids = dirichlet_partition(labels, np.array(ids_t, dtype=int), n_clients, beta, seed=seed + 1000 * t)
+        ids_t_arr = np.array(ids_t, dtype=int)
+        if client_field is not None:
+            client_ids = natural_chunked_partition(client_field, ids_t_arr, n_clients, seed=seed + 1000 * t)
+        else:
+            client_ids = dirichlet_partition(labels, ids_t_arr, n_clients, beta, seed=seed + 1000 * t)
         shards = [
             Shard(client=c, task=t, ids=tuple(sorted(int(i) for i in ci)))
             for c, ci in enumerate(client_ids)

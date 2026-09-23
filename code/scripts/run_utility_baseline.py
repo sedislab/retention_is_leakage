@@ -77,30 +77,42 @@ def main() -> int:
     spec = DATASET_SPEC[args.dataset]
     cache = features.load_cache(FEATURES_DIR, args.dataset, BACKBONE, "train")
     X, y = cache["features"], cache["labels"]
+    test_cache = features.load_cache(FEATURES_DIR, args.dataset, BACKBONE, "test")
+    X_test, y_test = test_cache["features"], test_cache["labels"]
 
     domain_field = None
+    domain_field_test = None
     if spec["domain"]:
         # Camelyon17's cached "labels" is the tumor/normal target; hospital domain isn't stored in
         # the generic feature cache (which only knows dataset/backbone/split/features/labels/ids) --
         # recover it from datasets/camelyon17/index.json, keyed by the same wilds_index in `ids`.
         index = json.loads((REPO_ROOT / "datasets" / "camelyon17" / "index.json").read_text())
         by_wilds_idx = {s["wilds_index"]: s["domain"] for s in index["samples"]}
-        domain_field_full = np.array([by_wilds_idx[int(i)] for i in cache["ids"]])
-        domain_field = domain_field_full
+        domain_field = np.array([by_wilds_idx[int(i)] for i in cache["ids"]])
+        domain_field_test = np.array([by_wilds_idx[int(i)] for i in test_cache["ids"]])
 
-    (X_std,) = _standardize(X)
+    X_std, X_test_std = _standardize(X, X_test)
     idx = np.arange(len(y))
     stream = streams.build_stream(
         y, idx, n_tasks=args.n_tasks, n_clients=spec["n_clients"], beta=spec["beta"],
         seed=args.seed, domain_field=domain_field,
     )
+    n_tasks_actual = len(stream)
+
+    # FX4a (08_FIX_PLAN.md R1): held-out test-split accuracy is now primary. `task_eval_sets` uses
+    # the exact same task-to-class/domain partition `build_stream` used above (same seed/n_tasks/
+    # domain values), so eval-task k lines up with train-task k.
+    idx_test = np.arange(len(y_test))
+    eval_id_lists = streams.task_eval_sets(
+        y_test, idx_test, n_tasks=n_tasks_actual, seed=args.seed, domain_field_eval=domain_field_test,
+    )
+    eval_sets = [(X_test_std[ids], y_test[ids]) for ids in eval_id_lists]
 
     cls, base_cfg = METHOD_REGISTRY[args.method]
     cfg = {**base_cfg, "n_classes": spec["n_classes"], "feature_dim": X_std.shape[1]}
     method = cls(cfg)
-    result = sim.run(method, X_std, y, stream, seed=args.seed)
+    result = sim.run(method, X_std, y, stream, seed=args.seed, eval_sets=eval_sets)
 
-    n_tasks_actual = len(stream)
     record = {
         "method": args.method,
         "dataset": args.dataset,
@@ -110,6 +122,9 @@ def main() -> int:
         "final_avg_acc": result["final_avg_acc"],
         "bwt": result["bwt"],
         "avg_incremental_acc": result["avg_incremental_acc"],
+        "final_avg_acc_train": result["final_avg_acc_train"],
+        "bwt_train": result["bwt_train"],
+        "avg_incremental_acc_train": result["avg_incremental_acc_train"],
         "n_ledger_records": len(result["ledger"]),
     }
     print(json.dumps(record, indent=2))

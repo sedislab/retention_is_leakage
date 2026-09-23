@@ -1,0 +1,16 @@
+{
+  "source_hash": "ebc93520ffe2cb3d7e1b2b53450cf4c75468b9ce7c48521c2bc71761ab99cc7a",
+  "config_hash": "7863454b2f2709f9",
+  "seed": 0,
+  "hostname": "n071",
+  "pbs_jobid": "184195[4].bcm11",
+  "pbs_array_index": "4",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-23T17:05:07.013988+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/shadows_v2/camelyon17/m0_fedavg/fig18_v2_natural/seed0/shadow_000618.npz",
+  "utc_end": "2026-09-23T17:05:16.334615+00:00",
+  "wall_seconds": 9.320627
+}

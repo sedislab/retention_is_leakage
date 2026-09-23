@@ -1,0 +1,16 @@
+{
+  "source_hash": "b655638c720f936eb5bfdc6d9342c84fe6edda3b06a9018051bef75039c98f62",
+  "config_hash": "5b7359287308bd3a",
+  "seed": 0,
+  "hostname": "n082",
+  "pbs_jobid": "183863[459].bcm11",
+  "pbs_array_index": "459",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-23T02:44:31.570280+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/shadows_v2/cub200/m5_hybrid_replay/seed1/shadow_000743.npz",
+  "utc_end": "2026-09-23T02:46:04.450088+00:00",
+  "wall_seconds": 92.879808
+}

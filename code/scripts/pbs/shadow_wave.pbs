@@ -1,0 +1,55 @@
+#!/bin/bash
+#PBS -N p3_wave_v2
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -J 0-863%56
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+
+# FX4i (08_FIX_PLAN.md §4i): manifest-driven array -- one qsub covers every (dataset, method, seed,
+# chunk) instead of one qsub per combination. `PBS_ARRAY_INDEX` is 0-based; the manifest has a header
+# row, so array index i is TSV line i+2. Walltime above is a placeholder until the pilot (6 subjobs,
+# one per method on the largest dataset) measures a real per-chunk time; set it to 3x that before
+# submitting the full array, per the plan's "pilot first" protocol.
+MANIFEST=/data/islamm/retention_leakage/build/waves/v2_main.tsv
+IDX="${PBS_ARRAY_INDEX:-0}"
+LINE=$(( IDX + 2 ))
+ROW=$(sed -n "${LINE}p" "$MANIFEST")
+if [ -z "$ROW" ]; then
+  echo "shadow_wave.pbs: no manifest row at index $IDX (line $LINE) in $MANIFEST" >&2
+  exit 1
+fi
+IFS=$'\t' read -r DATASET METHOD SEED START COUNT OUT_DIR OVERRIDE <<< "$ROW"
+
+SET_ARGS=(--set stream.base_seed="${SEED}")
+if [ -n "$OVERRIDE" ]; then
+  # OVERRIDE is a JSON object (method_config_override for this dataset/method, from FX4g's tuned
+  # config if the gate needed one). Expand it into one --set per key -- hand-rolling JSON parsing in
+  # bash is not worth it for a handful of keys.
+  while IFS=$'\t' read -r K V; do
+    SET_ARGS+=(--set "method_config_override.${K}=${V}")
+  done < <(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+for k, v in d.items():
+    print(f'{k}\t{json.dumps(v)}')
+" "$OVERRIDE")
+fi
+
+mkdir -p "$OUT_DIR"
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "$DATASET" --method "$METHOD" \
+  --start "$START" --count "$COUNT" \
+  --workers 8 \
+  "${SET_ARGS[@]}" \
+  --out "$OUT_DIR"

@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""FIG18 — Camelyon17 natural federation vs. Dirichlet (`00_BUILD_PLAN.md`'s "never cut" list).
-Reads `results/fig18_natural_federation.csv` (`code/scripts/run_fig18_report.py`'s output -- no
-computation here). Answers "is the decoupling effect an artifact of synthetic client splits?" by
-comparing the real, non-Dirichlet hospital partition against the same data under a synthetic
-Dirichlet split.
+"""FIG18 v2 — Camelyon17 natural federation vs. Dirichlet, matched-5-client redesign
+(`08_FIX_PLAN.md`'s H13 fix). Reads `results/fig18_natural_federation.csv`
+(`code/scripts/run_fig18_report.py`'s output -- no computation here). Answers "is the decoupling
+effect an artifact of synthetic client splits?" by comparing a real, slide-grouped hospital partition
+against a synthetic Dirichlet split of the SAME data, both using `n_clients=5` -- unlike the original
+pilot (`n_clients=1` for natural vs. 10 for Dirichlet), this isolates partition STRATEGY from client
+COUNT, which `agents/OPEN_QUESTIONS.md`'s H13 entry flagged as confounded.
 
-**PILOT scope**: M0 only, 3 seeds, reduced 1,024-shadow budget, ~5,000-image class+hospital-
-stratified subsample of the full 455,954-patch Camelyon17-WILDS release. See
-`notes/2026-09-21_fig18_camelyon17.md` for the full scope and the CodaLab-download workaround this
-required.
+**Still PILOT scope otherwise**: M0 only, 3 seeds, reduced 1,024-shadow budget, ~5,000-image
+class+hospital-stratified subsample of the full 455,954-patch Camelyon17-WILDS release. See
+`notes/2026-09-21_fig18_camelyon17.md` for the original scope and the CodaLab-download workaround,
+and `build/STATE.md`'s Wave V3 section for the matched-5-client redesign itself.
 """
 from __future__ import annotations
 
@@ -25,8 +27,8 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 from p3fcl import plotting  # noqa: E402
 
 _PARTITION_STYLE = {
-    "natural": {"color": "#1b9e77", "marker": "o", "label": "natural (real hospitals, no Dirichlet)"},
-    "dirichlet": {"color": "#d95f02", "marker": "s", "label": "Dirichlet-subpartitioned (n=10 clients)"},
+    "natural": {"color": "#1b9e77", "marker": "o", "label": "natural (by slide, n=5 clients)"},
+    "dirichlet": {"color": "#d95f02", "marker": "s", "label": "Dirichlet-subpartitioned (n=5 clients)"},
 }
 
 
@@ -59,7 +61,7 @@ def main() -> int:
 
     ax_acc.axhline(1.0, color="0.7", linewidth=0.5, linestyle="--")
     ax_acc.set_ylabel("accuracy on task $k$\n(normalised to elapsed=0)", fontsize=7)
-    ax_acc.set_title("FIG18 (PILOT) — Camelyon17: natural vs.\nDirichlet client partition, M0", fontsize=8)
+    ax_acc.set_title("FIG18 v2 (PILOT) — Camelyon17: natural vs.\nDirichlet client partition, matched n=5, M0", fontsize=8)
     ax_acc.legend(fontsize=6, loc="lower left")
     ax_leak.set_ylabel("A1 TPR@1%FPR", fontsize=7)
     ax_leak.set_xlabel("elapsed tasks ($T - k$), 5 hospitals")

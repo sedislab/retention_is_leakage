@@ -1,0 +1,16 @@
+{
+  "source_hash": "64b683b888d1865991266fb3749c5636ebad9a2775425890293378954e446715",
+  "config_hash": "6075f379b6aa9c0a",
+  "seed": 0,
+  "hostname": "kodiak",
+  "pbs_jobid": null,
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-21T23:39:51.326792+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/a1_lira_imagenet_r_m5_hybrid_replay_seed1.csv",
+  "utc_end": "2026-09-21T23:39:56.079979+00:00",
+  "wall_seconds": 4.753187
+}

@@ -1,0 +1,4 @@
+dataset: imagenet_r
+method: M8
+n_tasks: 10
+seed: 2

@@ -54,6 +54,57 @@ def test_clopper_pearson_bounds_contain_mle():
     assert lo < 0.5 < hi
 
 
+def _tpr_at_fpr_bruteforce(scores, labels, target_fpr: float) -> float:
+    """The original O(n^2) per-threshold-loop definition `tpr_at_fpr` was rewritten from (FX2,
+    `08_FIX_PLAN.md` §7c: the O(n^2) version took ~10s per call at bootstrap scale, infeasible for
+    2000 replicates) -- kept here as the ground-truth reference for the vectorised version."""
+    scores = np.asarray(scores, dtype=float)
+    labels = np.asarray(labels, dtype=int)
+    pos = scores[labels == 1]
+    neg = scores[labels == 0]
+    if len(pos) == 0 or len(neg) == 0:
+        return float("nan")
+    thresholds = np.unique(scores)[::-1]
+    best_tpr = 0.0
+    for thr in thresholds:
+        fpr = float(np.mean(neg >= thr))
+        if fpr <= target_fpr:
+            best_tpr = max(best_tpr, float(np.mean(pos >= thr)))
+    return best_tpr
+
+
+def test_tpr_at_fpr_matches_a_bruteforce_reimplementation():
+    """Regression test for the O(n log n) rewrite (FX2): must be bit-for-bit identical to the
+    original per-threshold-loop definition on many random inputs, including ties and small n."""
+    rng = np.random.default_rng(0)
+    for trial in range(200):
+        n = rng.integers(2, 60)
+        scores = rng.choice(np.round(rng.standard_normal(max(3, n // 3)), 2), size=n)  # force ties
+        labels = rng.integers(0, 2, size=n)
+        for target_fpr in (0.001, 0.01, 0.05, 0.5, 1.0):
+            fast = metrics.tpr_at_fpr(scores, labels, target_fpr)
+            slow = _tpr_at_fpr_bruteforce(scores, labels, target_fpr)
+            if np.isnan(slow):
+                assert np.isnan(fast), (trial, target_fpr)
+            else:
+                assert fast == pytest.approx(slow), (trial, target_fpr, fast, slow)
+
+
+def test_tpr_at_fpr_is_fast_at_bootstrap_scale():
+    """The whole point of the rewrite: must stay well under a second at the pooled-population scale
+    FX2's hierarchical bootstrap actually calls it at (order 10^5), not the ~10s/call the old O(n^2)
+    loop measured there."""
+    import time
+
+    rng = np.random.default_rng(1)
+    n = 160_000
+    scores = rng.standard_normal(n)
+    labels = (rng.random(n) < 0.5).astype(int)
+    start = time.time()
+    metrics.tpr_at_fpr(scores, labels, 0.01)
+    assert time.time() - start < 2.0
+
+
 def test_clopper_pearson_edge_cases():
     lo, hi = metrics.clopper_pearson(0, 10)
     assert lo == 0.0

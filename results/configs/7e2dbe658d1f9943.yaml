@@ -1,0 +1,18 @@
+dataset: cifar100
+knobs:
+  m2_target: n_synthetic_per_class
+  m5_hybrid_replay: buffer_size_per_class
+levels:
+- 1
+- 2
+- 5
+- 10
+- 20
+- 50
+purpose: FX8 dose-response leakage, pooled K=[0, 1, 2, 3] at elapsed=6 (claim C2,
+  H2)
+seed: 0
+seeds:
+- 0
+- 1
+- 2

@@ -1,0 +1,16 @@
+{
+  "source_hash": "fab2e48b30d4b05c9c3e385017f0fca9c2922553e763c5a0e3779a3b7484faca",
+  "config_hash": "c75afdf9c25bd4b0",
+  "seed": 0,
+  "hostname": "n026",
+  "pbs_jobid": "183944[20].bcm11",
+  "pbs_array_index": "20",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-23T06:33:10.542407+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/a1_lira_pertask_imagenet_r_m1_glfc_seed2_full.npz",
+  "utc_end": "2026-09-23T06:33:11.994486+00:00",
+  "wall_seconds": 1.452079
+}

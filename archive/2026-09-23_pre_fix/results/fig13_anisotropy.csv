@@ -1,0 +1,3 @@
+dataset,backbone,anisotropy_ratio
+cub200,vit_base_patch16_224.augreg_in21k,34.03062132603117
+cifar100,vit_base_patch16_224.augreg_in21k,86.3956279333485

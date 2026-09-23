@@ -1,0 +1,40 @@
+#!/bin/bash
+#PBS -N p3_fig18_v2
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -J 0-7%8
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/build/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+
+# FIG18 v2 (08_FIX_PLAN.md's H13 fix, matched-5-client redesign): both arms now use N_CLIENTS=5.
+# PARTITION=natural sets stream.client_field=slide (real, indivisible physical-slide grouping);
+# PARTITION=dirichlet leaves client_field unset (falls back to the existing random per-class
+# Dirichlet split) -- both otherwise identical (domain-incremental, 5 hospital-tasks, n_clients=5).
+# New shadows go to shadows_v2/, per the standing rule -- the old shadows/camelyon17/fig18_natural|
+# dirichlet stores (pre-redesign, n_clients=1 vs 10) are superseded, not reused or overwritten.
+CHUNK=128
+IDX="${PBS_ARRAY_INDEX:-0}"
+START=$(( IDX * CHUNK ))
+SEED="${SEED:-0}"
+OUT_DIR=/data/islamm/retention_leakage/shadows_v2/"${DATASET}"/"${METHOD}"/fig18_v2_"${PARTITION}"/seed"${SEED}"
+SET_ARGS=(--set stream.base_seed="${SEED}" --set stream.use_domain_field=true --set stream.n_clients=5)
+if [ "${PARTITION}" = "natural" ]; then
+  SET_ARGS+=(--set stream.client_field=slide)
+fi
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "${DATASET}" --method "${METHOD}" \
+  --start "$START" --count "$CHUNK" \
+  --workers 8 \
+  "${SET_ARGS[@]}" \
+  --out "$OUT_DIR"

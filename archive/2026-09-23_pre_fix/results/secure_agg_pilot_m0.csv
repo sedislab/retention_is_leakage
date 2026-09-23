@@ -1,0 +1,10 @@
+dataset,method,adversary_view,seed,elapsed,tpr1
+cifar100,m0_fedavg,secure_agg,0,0,0.03021709368276941
+cifar100,m0_fedavg,secure_agg,0,5,0.029592756633872928
+cifar100,m0_fedavg,secure_agg,0,9,0.01887905604719764
+cifar100,m0_fedavg,secure_agg,1,0,0.0292070424457486
+cifar100,m0_fedavg,secure_agg,1,5,0.026556598263307505
+cifar100,m0_fedavg,secure_agg,1,9,0.02424942263279446
+cifar100,m0_fedavg,secure_agg,2,0,0.026564505464587142
+cifar100,m0_fedavg,secure_agg,2,5,0.03130697908988633
+cifar100,m0_fedavg,secure_agg,2,9,0.02888583218707015

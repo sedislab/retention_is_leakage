@@ -1,0 +1,18 @@
+calibration_frac: 0.8
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+methods:
+  cifar100: &id001
+  - m0_fedavg
+  - m1_glfc
+  - m2_target
+  - m3_fot
+  - m4_proto
+  - m5_hybrid_replay
+  - m8_analytic
+  cub200: *id001
+  imagenet_r: *id001
+purpose: FIG16 log-log ROC curves, seed=0, elapsed=0, trajectory ablation
+seed: 0

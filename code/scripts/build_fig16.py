@@ -2,16 +2,26 @@
 """FIG16 — log-log ROC curves (CLAUDE.md non-negotiable #5: "membership results are never reported
 as AUC alone... log-log ROC is mandatory in the appendix" -- this is the one piece of that rule this
 project had not yet built). Recomputes the full ROC curve (many fpr/tpr points, not just the 3 summary
-numbers already in `results/a1_lira_*.csv`) from the already-generated shadow stores, reusing
+numbers already in `results/a1_lira_pertask_*.csv`) from the already-generated shadow stores, reusing
 `run_lira.py`'s own `load_shadow_store`/`compute_log_lr_surfaces` and the *same* seeded calibration/
-evaluation split it uses for the numbers already reported -- so this curve is consistent with, not a
-re-derivation that could silently disagree with, the headline TPR@1%/0.1%FPR numbers.
+evaluation split and fixed-k target population `run_lira_pertask.py` uses for the pooled numbers
+already reported -- so this curve is consistent with, not a re-derivation that could silently disagree
+with, the headline TPR@1%/0.1%FPR numbers.
 
 Scope: one curve per (dataset, method), **seed=0 only** (not all 5 seeds -- a full 5-seed-per-curve
 version is a reasonable follow-up if there's time, but seed=0 is the same "primary" seed every other
 per-seed CSV in this project treats as the default, and one representative curve per (dataset, method)
 is what the appendix figure needs). `elapsed=0` (the standard, most-immediate MIA setting), trajectory
-ablation (this project's primary ablation, per H3).
+ablation (this project's primary ablation, per H3), `full` view (this project's primary/headline view),
+pooled over FX2's fixed K_SET=[0,1,2,3] target population (same population the headline numbers pool
+over -- NOT every target, which would silently mix in a different, inconsistent population).
+
+2026-09-23 (`08_FIX_PLAN.md` FX6): the original version hardcoded `shadows/<dataset>/<method>` (the
+legacy, pre-fix, single-view store) for every method -- the same stale-shadow-dir bug class FX2 found
+and fixed in `run_lira_pertask.py` (`notes/2026-09-22_fx2_stale_shadow_dir_bug.md`), just never
+back-ported here. Fixed to reuse `run_lira_pertask._shadow_dir` (M0 legacy `shadows/`, every other
+method `shadows_v2/<dataset>/<method>/seed0`) and to pool over K_SET the same way `run_lira_pertask.py`
+does, rather than every target in the stream.
 """
 from __future__ import annotations
 
@@ -30,10 +40,12 @@ import yaml  # noqa: E402
 from p3fcl import provenance  # noqa: E402
 from p3fcl import rng as rng_mod  # noqa: E402
 from p3fcl.shadow_runner import METHOD_REGISTRY  # noqa: E402
+from run_lira_pertask import K_SET, _shadow_dir  # noqa: E402
 
 DATASETS = ["cifar100", "cub200", "imagenet_r"]
 METHODS = ["m0_fedavg", "m1_glfc", "m2_target", "m3_fot", "m4_proto", "m5_hybrid_replay", "m8_analytic"]
 N_FPR_GRID = 200
+SEED = 0
 
 
 def _roc_curve(scores: np.ndarray, labels: np.ndarray, n_points: int = N_FPR_GRID):
@@ -74,13 +86,13 @@ def main() -> int:
     out_rows = []
     for dataset in datasets:
         for method in methods_by_dataset[dataset]:
-            shadow_dir = REPO_ROOT / "shadows" / dataset / method
+            shadow_dir = _shadow_dir(dataset, method, SEED)
             if not shadow_dir.exists():
                 print(f"missing {shadow_dir}, skipping")
                 continue
-            store = run_lira.load_shadow_store(shadow_dir)
+            store = run_lira.load_shadow_store(shadow_dir, view="full")
             n_shadows = len(store["shadow_ids"])
-            r = rng_mod.seeded(f"run_lira::calib_split::{dataset}::{method}", seed)
+            r = rng_mod.seeded(f"run_lira_pertask::calib_split::{dataset}::{method}::full", seed)
             perm = r.permutation(n_shadows)
             n_calib = int(round(calib_frac * n_shadows))
             calib_idx, eval_idx = perm[:n_calib], perm[n_calib:]
@@ -92,6 +104,8 @@ def main() -> int:
 
             scores_list, labels_list = [], []
             for j, t in enumerate(targets):
+                if t["task"] not in K_SET:
+                    continue
                 T = t["task"]  # elapsed=0 -> observe at the target's own release round
                 if not (0 <= T < store["n_rounds"]):
                     continue

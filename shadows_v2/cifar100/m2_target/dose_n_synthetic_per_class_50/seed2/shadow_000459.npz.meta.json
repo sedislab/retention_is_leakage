@@ -1,0 +1,16 @@
+{
+  "source_hash": "1c52e450c2e1f845cdccafcb0c0d2d2af3127bdc792c04523b197f7623e49903",
+  "config_hash": "d5687f3d29690d2b",
+  "seed": 0,
+  "hostname": "n027",
+  "pbs_jobid": "184262[287].bcm11",
+  "pbs_array_index": "287",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-23T20:13:04.334723+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/shadows_v2/cifar100/m2_target/dose_n_synthetic_per_class_50/seed2/shadow_000459.npz",
+  "utc_end": "2026-09-23T20:21:52.799411+00:00",
+  "wall_seconds": 528.464688
+}

@@ -7,7 +7,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from p3fcl.artifacts import ArtifactRecord, Family, Ledger
-from p3fcl.dp.accountant import account, check_disjointness
+from p3fcl.dp.accountant import account, check_disjointness, extrapolate_lifelong
+from p3fcl.streams import Shard
 from p3fcl.units import Unit
 
 
@@ -30,18 +31,35 @@ def _task_disjoint_ledger(n_tasks: int, n_per_task: int = 5) -> Ledger:
     return ledger
 
 
+def _task_disjoint_stream(n_tasks: int, n_per_task: int = 5) -> list:
+    """The single-client stream `_task_disjoint_ledger` was generated against -- FX1's `account()`
+    reads `(client, task)` shard ids off the stream itself (never off the ledger), so every test that
+    builds a synthetic ledger by hand needs a matching synthetic stream."""
+    return [
+        [Shard(client=0, task=t, ids=tuple(range(t * n_per_task, (t + 1) * n_per_task)))]
+        for t in range(n_tasks)
+    ]
+
+
 class TestT1Fwd:
     """CLAIM: a synthetic task-disjoint ledger accounts to an eps that is *constant* in T under U2,
-    for T in {1, 10, 100, 1000}."""
+    for T in {1, 10, 100, 1000}. FX1 rewrite (`08_FIX_PLAN.md` §6): `account()` no longer has a
+    hard-coded "task-disjoint -> parallel composition" branch for U2 -- flatness now has to fall out
+    of the unified max-m_T-over-instances rule on its own (each shard's own release is the only
+    record that ever touches it, so m_T stays at 1 forever), and T > n_tasks needs
+    `extrapolate_lifelong` since `account()` itself only reports observed horizons."""
 
     def test_eps_constant_in_T_under_U2(self):
         ledger = _task_disjoint_ledger(n_tasks=5)
+        stream = _task_disjoint_stream(n_tasks=5)
         report = check_disjointness(ledger)
         assert report.task_disjoint, f"expected task-disjoint, got violations={report.violations}"
 
-        result = account(ledger, sigma=2.0, unit=Unit.TASK, delta=1e-5)
-        assert result.lifelong
-        values = [result.eps_of_T(T) for T in (1, 10, 100, 1000)]
+        df = account(ledger, stream, unit=Unit.TASK, sigma=2.0, delta=1e-5)
+        assert (df["m_T"] == 1).all(), "task-disjoint: each shard's own release should be its only touch, ever"
+        ext = extrapolate_lifelong(df, sigma=2.0, delta=1e-5, T_values=[1, 10, 100, 1000])
+        assert ext.loc[ext["observed"] == 1, "regime"].iloc[0] == "contractive"
+        values = [ext.loc[ext["T"] == T, "eps"].item() for T in (1, 10, 100, 1000)]
         assert all(v == pytest.approx(values[0], rel=1e-9) for v in values), values
 
 
@@ -50,14 +68,14 @@ class TestH1:
 
     def test_eps_unbounded_in_T_under_U4(self):
         ledger = _task_disjoint_ledger(n_tasks=5)
-        result = account(ledger, sigma=2.0, unit=Unit.CLIENT_LIFELONG, delta=1e-5)
-        assert not result.lifelong
-        v1 = result.eps_of_T(1)
-        v50 = result.eps_of_T(50)
-        v1000 = result.eps_of_T(1000)
+        stream = _task_disjoint_stream(n_tasks=5)
+        df = account(ledger, stream, unit=Unit.CLIENT_LIFELONG, sigma=2.0, delta=1e-5)
+        ext = extrapolate_lifelong(df, sigma=2.0, delta=1e-5, T_values=[1, 50, 1000, 5000])
+        assert ext.loc[ext["observed"] == 1, "regime"].iloc[0] == "accumulating"
+        v1, v50, v1000, v5000 = (ext.loc[ext["T"] == T, "eps"].item() for T in (1, 50, 1000, 5000))
         assert v1 < v50 < v1000, (v1, v50, v1000)
         # unbounded: eps must keep growing well past any fixed budget as T grows further
-        assert result.eps_of_T(5000) > v1000
+        assert v5000 > v1000
 
 
 class TestAnalyticTaskDisjointness:

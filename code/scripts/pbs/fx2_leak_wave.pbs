@@ -1,0 +1,44 @@
+#!/bin/bash
+#PBS -N p3_fx2_leak
+#PBS -q batch
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=18:00:00
+#PBS -J 0-29%30
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=2
+export MKL_NUM_THREADS=2
+export OPENBLAS_NUM_THREADS=2
+
+# FX2 leak pipeline, manifest-driven (build_fx2_manifest.py writes the TSV). PBS_ARRAY_INDEX is
+# 0-based; the manifest has a header row, so array index i is TSV line i+2.
+MANIFEST=/data/islamm/retention_leakage/build/waves/fx2_leak_main.tsv
+IDX="${PBS_ARRAY_INDEX:-0}"
+LINE=$(( IDX + 2 ))
+ROW=$(sed -n "${LINE}p" "$MANIFEST")
+if [ -z "$ROW" ]; then
+  echo "fx2_leak_wave.pbs: no manifest row at index $IDX (line $LINE) in $MANIFEST" >&2
+  exit 1
+fi
+IFS=$'\t' read -r DATASET METHOD FAMILY VIEW SEEDS <<< "$ROW"
+IFS=',' read -ra SEED_ARR <<< "$SEEDS"
+
+# Stage 1 (fast): per-task LiRA scoring, one call per seed -- writes the CSV+npz pair
+# `build_fx2_summary.py` needs. Skips a seed if its npz already exists (resumable).
+for SEED in "${SEED_ARR[@]}"; do
+  OUT_NPZ="/data/islamm/retention_leakage/results/a1_lira_pertask_${DATASET}_${METHOD}_seed${SEED}_${VIEW}.npz"
+  if [ -f "$OUT_NPZ" ]; then
+    echo "skipping $DATASET/$METHOD/seed$SEED/$VIEW: $OUT_NPZ already exists"
+    continue
+  fi
+  python scripts/run_lira_pertask.py "$DATASET" "$METHOD" "$SEED" "$VIEW"
+done
+
+# Stage 2 (slow, ~3-4h at real shadow scale): the hierarchical-bootstrap aggregation.
+python scripts/build_fx2_summary.py "$DATASET" "$METHOD" "$FAMILY" "$VIEW" "${SEED_ARR[@]}"

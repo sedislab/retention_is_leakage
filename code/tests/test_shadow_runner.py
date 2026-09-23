@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import importlib.util
 import multiprocessing as mp
+from pathlib import Path
 
 import numpy as np
 import pytest
 from p3fcl import features, shadow_runner
+
+
+def _load_run_lira_module():
+    """`scripts/run_lira.py` is a standalone entry point, not part of the `p3fcl` package -- load it
+    by path rather than polluting `sys.path` with the whole `scripts/` directory."""
+    path = Path(__file__).resolve().parents[1] / "scripts" / "run_lira.py"
+    spec = importlib.util.spec_from_file_location("run_lira", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _make_synthetic_cache(tmp_path, n_classes=4, per_class=20, d=6, seed=0):
@@ -125,7 +137,7 @@ def test_run_shadow_range_respects_adversary_view_secure_agg(tmp_path):
     with np.load(out_full / "shadow_000000.npz") as d_full, np.load(out_secure / "shadow_000000.npz") as d_secure:
         np.testing.assert_array_equal(d_full["in_out"], d_secure["in_out"])  # same population mask
         assert not np.allclose(
-            np.nan_to_num(d_full["scores"]), np.nan_to_num(d_secure["scores"])
+            np.nan_to_num(d_full["scores_full"]), np.nan_to_num(d_secure["scores_full"])
         ), "secure_agg reconstruction must differ from the full per-client reconstruction"
 
 
@@ -139,6 +151,124 @@ def test_run_shadow_range_respects_method_config_override(tmp_path):
         out_dir=out_dir, config=config_zero,
     )
     assert result["n_written"] == 2
+
+
+def test_run_shadow_range_m9_without_pca_basis_fails_loudly(tmp_path):
+    """`_method_config` deliberately excludes `pca_basis` for m9_contractive -- only a caller with
+    dataset (`ref` split) access can fit a real one. A caller that forgets to supply it via
+    `method_config_override` must get a loud failure from `ContractiveDPAnalytic.__init__`, not a
+    silently-wrong default (08_FIX_PLAN.md's M9 audit design notes, subtlety 3)."""
+    out_dir = tmp_path / "shadows"
+    with pytest.raises(KeyError):
+        shadow_runner.run_shadow_range(
+            dataset="synthdset", method="m9_contractive", start=0, count=1, workers=1,
+            out_dir=out_dir, config=_CONFIG,
+        )
+
+
+def test_run_shadow_range_m9_with_pca_basis_override(tmp_path):
+    """End to end through the real entrypoint: a caller-supplied `pca_basis` (p=3 < d=6, the
+    synthetic cache's feature dim) must reach the worker, and GRAM `global`/`aggregate` scoring must
+    not crash on the dimension mismatch a raw (unprojected) feature would cause against M9's
+    p x p running state."""
+    out_dir = tmp_path / "shadows"
+    P = np.eye(6)[:, :3]
+    config = {**_CONFIG, "method_config_override": {"pca_basis": P, "gamma": 1.0, "eps": float("inf")}}
+    result = shadow_runner.run_shadow_range(
+        dataset="synthdset", method="m9_contractive", start=0, count=3, workers=1,
+        out_dir=out_dir, config=config,
+    )
+    assert result["n_written"] == 3
+    store = np.load(out_dir / "shadow_000000.npz", allow_pickle=True)
+    assert "scores_global" in store and "scores_aggregate" in store
+    # M9 never releases a per-client record (client=-1 only, a genuine post-secure-aggregation
+    # release) -- `full` must be structurally all-NaN, not a crash or a stale per-client read.
+    assert np.all(np.isnan(store["scores_full"]))
+    # `global`/`aggregate` should have real (non-all-NaN) scores from a target's own task onward.
+    assert not np.all(np.isnan(store["scores_global"]))
+    assert not np.all(np.isnan(store["scores_aggregate"]))
+
+
+def test_run_shadow_range_m9_gives_each_shadow_independent_dp_noise(tmp_path):
+    """A real, critical M9-audit correctness requirement: with finite eps (DP noise actually added),
+    two different shadows must NOT receive identical noise. `ContractiveDPAnalytic` reads
+    `config['noise_seed']` (decoupled from `sim.run`'s data seed by design) and `method_config_override`
+    is one fixed dict shared across the whole `run_shadow_range` call -- without `_run_one_shadow`
+    defaulting `noise_seed` to the shadow's own id, every shadow would draw the exact same noise, which
+    would make the audit measure a mechanism that provides no real differential privacy at all."""
+    out_dir = tmp_path / "shadows"
+    P = np.eye(6)[:, :3]
+    config = {
+        **_CONFIG,
+        # p_in=1.0 makes `_population_mask` keep everyone regardless of shadow_id (`r.random(n) < 1.0`
+        # is true for every draw in [0, 1)) -- isolates this test to noise variation alone, since
+        # otherwise population resampling would already make shadows differ for an unrelated reason.
+        "targets": {"per_shard": 3, "p_in": 1.0},
+        "method_config_override": {"pca_basis": P, "gamma": 1.0, "eps": 1.0, "delta": 1e-5, "unit": "U1"},
+    }
+    shadow_runner.run_shadow_range(
+        dataset="synthdset", method="m9_contractive", start=0, count=2, workers=1,
+        out_dir=out_dir, config=config,
+    )
+    with np.load(out_dir / "shadow_000000.npz") as d0, np.load(out_dir / "shadow_000001.npz") as d1:
+        scores0, scores1 = d0["scores_global"], d1["scores_global"]
+    finite0, finite1 = np.nan_to_num(scores0), np.nan_to_num(scores1)
+    assert not np.allclose(finite0, finite1), (
+        "two different shadows produced identical M9 global scores under finite eps -- "
+        "the DP noise is not actually varying per shadow"
+    )
+
+
+def test_reconstruct_gram_global_gamma_decay():
+    """`_reconstruct_gram_global`'s `gamma` parameter (08_FIX_PLAN.md's M9 audit): at the default
+    `gamma=1.0` it must reduce EXACTLY to the old plain-cumulative-sum behavior (M8's regression
+    safety net); at `gamma<1` it must apply the decay once per round transition, matching
+    `ContractiveDPAnalytic.fit_task`'s own `self.R = self.gamma*self.R + G_tilde` update."""
+    from p3fcl.artifacts import ArtifactRecord, Family
+
+    R0 = np.array([[2.0, 0.0], [0.0, 2.0]])
+    R1 = np.array([[1.0, 0.0], [0.0, 1.0]])
+    recs = [
+        ArtifactRecord(round=0, task=0, client=-1, family=Family.GRAM, payload={"R": R0},
+                        touched=frozenset({0}), n_touched=1, passes_over_data=1),
+        ArtifactRecord(round=1, task=1, client=-1, family=Family.GRAM, payload={"R": R1},
+                        touched=frozenset({1}), n_touched=1, passes_over_data=1),
+    ]
+
+    out_default = shadow_runner._reconstruct_gram_global(recs, n_rounds=2, d=2)
+    np.testing.assert_allclose(out_default[0], R0)
+    np.testing.assert_allclose(out_default[1], R0 + R1)
+
+    out_decay = shadow_runner._reconstruct_gram_global(recs, n_rounds=2, d=2, gamma=0.5)
+    np.testing.assert_allclose(out_decay[0], R0)
+    np.testing.assert_allclose(out_decay[1], 0.5 * R0 + R1)
+
+
+def test_reconstruct_gram_global_gamma_sums_within_round_before_decaying():
+    """The decay must apply ONCE per round transition, not once per record processed within a round
+    -- with two client records landing in the SAME round (M8-style multi-client releases) after a
+    nonzero prior state, summing them first and decaying the prior state once gives a different
+    (correct) answer than decaying between every individual record in sequence."""
+    from p3fcl.artifacts import ArtifactRecord, Family
+
+    R0 = np.array([[4.0, 0.0], [0.0, 4.0]])
+    Ra = np.array([[1.0, 0.0], [0.0, 1.0]])
+    Rb = np.array([[3.0, 0.0], [0.0, 3.0]])
+    recs = [
+        ArtifactRecord(round=0, task=0, client=-1, family=Family.GRAM, payload={"R": R0},
+                        touched=frozenset({0}), n_touched=1, passes_over_data=1),
+        ArtifactRecord(round=1, task=1, client=0, family=Family.GRAM, payload={"R": Ra},
+                        touched=frozenset({1}), n_touched=1, passes_over_data=1),
+        ArtifactRecord(round=1, task=1, client=1, family=Family.GRAM, payload={"R": Rb},
+                        touched=frozenset({2}), n_touched=1, passes_over_data=1),
+    ]
+    out = shadow_runner._reconstruct_gram_global(recs, n_rounds=2, d=2, gamma=0.5)
+    # Correct (sum this round's records first, decay the prior state once): 0.5*R0 + (Ra + Rb).
+    correct_round1 = 0.5 * R0 + (Ra + Rb)
+    # What a per-record decay would have wrongly given instead: 0.5*(0.5*R0 + Ra) + Rb.
+    wrong_round1 = 0.5 * (0.5 * R0 + Ra) + Rb
+    np.testing.assert_allclose(out[1], correct_round1)
+    assert not np.allclose(out[1], wrong_round1)
 
 
 @pytest.mark.parametrize(
@@ -185,7 +315,7 @@ def test_shadow_output_is_byte_identical_across_reruns(tmp_path):
     with np.load(dir_a / "shadow_000007.npz") as da, np.load(dir_b / "shadow_000007.npz") as db:
         assert np.array_equal(da["target_ids"], db["target_ids"])
         assert np.array_equal(da["in_out"], db["in_out"])
-        np.testing.assert_array_equal(da["scores"], db["scores"])
+        np.testing.assert_array_equal(da["scores_full"], db["scores_full"])
 
 
 def _call_run_shadow_range(dataset, method, start, count, out_dir, config, queue):
@@ -258,7 +388,7 @@ def test_out_shadows_have_real_between_shadow_noise(tmp_path):
 
     with open(out_dir / "targets.json") as f:
         targets = json.load(f)
-    all_scores = np.stack([np.load(out_dir / f"shadow_{i:06d}.npz")["scores"] for i in range(n_shadows)])
+    all_scores = np.stack([np.load(out_dir / f"shadow_{i:06d}.npz")["scores_full"] for i in range(n_shadows)])
     all_in_out = np.stack([np.load(out_dir / f"shadow_{i:06d}.npz")["in_out"] for i in range(n_shadows)])
 
     found_real_spread = False
@@ -290,7 +420,7 @@ def test_m0_trajectory_and_last_round_are_not_identical(tmp_path):
     with open(out_dir / "targets.json") as f:
         targets = json.load(f)
     all_scores = np.stack(
-        [np.load(out_dir / f"shadow_{i:06d}.npz")["scores"] for i in range(n_shadows)]
+        [np.load(out_dir / f"shadow_{i:06d}.npz")["scores_full"] for i in range(n_shadows)]
     )
     all_in_out = np.stack(
         [np.load(out_dir / f"shadow_{i:06d}.npz")["in_out"] for i in range(n_shadows)]
@@ -336,7 +466,7 @@ def test_prototype_score_separates_in_from_out_on_a_small_shard(tmp_path):
         targets = json.load(f)
 
     all_scores = np.stack(
-        [np.load(out_dir / f"shadow_{i:06d}.npz")["scores"] for i in range(n_shadows)]
+        [np.load(out_dir / f"shadow_{i:06d}.npz")["scores_full"] for i in range(n_shadows)]
     )  # (n_shadows, n_targets, n_rounds)
     all_in_out = np.stack(
         [np.load(out_dir / f"shadow_{i:06d}.npz")["in_out"] for i in range(n_shadows)]
@@ -353,3 +483,199 @@ def test_prototype_score_separates_in_from_out_on_a_small_shard(tmp_path):
                 found_separation = True
                 break
     assert found_separation, "expected at least one target where IN-shadows score higher than OUT-shadows"
+
+
+# ---------------------------------------------------------------------------------------------
+# FX4h (08_FIX_PLAN.md §4h): multi-view shadow scoring for PROTOTYPE/GRAM.
+# ---------------------------------------------------------------------------------------------
+
+
+def test_prototype_global_equals_aggregate_with_a_single_task():
+    """FX4h test requirement: "With a single task, `global` after task k equals `aggregate`."
+    Two clients release disjoint classes in the one and only round: `global`'s "last write for this
+    class wins" replay and `aggregate`'s count-weighted combination must agree class-by-class, since
+    each class has exactly one contributing client that round -- no averaging or overwriting to
+    disagree about."""
+    from p3fcl.artifacts import ArtifactRecord, Family, Ledger
+
+    ledger = Ledger()
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=0, family=Family.PROTOTYPE,
+        payload={"0": np.array([1.0, 2.0]), "1": np.array([3.0, 4.0])},
+        touched=frozenset({10, 11}), n_touched=2, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=0, family=Family.COUNTS,
+        payload={"counts": np.array([2, 2, 0, 0])},
+        touched=frozenset({10, 11}), n_touched=2, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=1, family=Family.PROTOTYPE,
+        payload={"2": np.array([5.0, 6.0]), "3": np.array([7.0, 8.0])},
+        touched=frozenset({20, 21}), n_touched=2, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=1, family=Family.COUNTS,
+        payload={"counts": np.array([0, 0, 3, 3])},
+        touched=frozenset({20, 21}), n_touched=2, passes_over_data=1,
+    ))
+
+    recs = list(ledger)
+    global_bank = shadow_runner._reconstruct_prototype_global(recs, n_rounds=1, n_classes=4, d=2)
+    agg = shadow_runner._reconstruct_prototype_aggregate(recs, task_k=0, n_classes=4, d=2)
+    np.testing.assert_array_equal(global_bank[0], agg)
+
+
+def test_gram_global_equals_aggregate_with_a_single_task():
+    """Same FX4h requirement, GRAM family: with a single round, `global`'s cumulative sum over that
+    round's releases and `aggregate`'s sum over that task's releases are the same sum regardless of
+    how many clients contributed."""
+    from p3fcl.artifacts import ArtifactRecord, Family, Ledger
+
+    ledger = Ledger()
+    R0 = np.array([[2.0, 0.5], [0.5, 3.0]])
+    R1 = np.array([[1.0, -0.5], [-0.5, 4.0]])
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=0, family=Family.GRAM, payload={"R": R0},
+        touched=frozenset({10, 11}), n_touched=2, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=1, family=Family.GRAM, payload={"R": R1},
+        touched=frozenset({20, 21}), n_touched=2, passes_over_data=1,
+    ))
+
+    recs = list(ledger)
+    global_R = shadow_runner._reconstruct_gram_global(recs, n_rounds=1, d=2)
+    agg_R = shadow_runner._reconstruct_gram_aggregate(recs, task_k=0, d=2)
+    np.testing.assert_array_equal(global_R[0], agg_R)
+
+
+def test_prototype_aggregate_is_the_count_weighted_combination_of_per_client_payloads():
+    """FX4h test requirement: "`aggregate` equals the count-weighted combination of the per-client
+    payloads." Unlike the two tests above, both clients release the SAME class here, so a weighted
+    mean and a last-write-wins replay would disagree -- this isolates `aggregate`'s actual formula
+    from `global`'s."""
+    from p3fcl.artifacts import ArtifactRecord, Family, Ledger
+
+    ledger = Ledger()
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=0, family=Family.PROTOTYPE,
+        payload={"0": np.array([0.0, 0.0])},
+        touched=frozenset({10, 11}), n_touched=2, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=0, family=Family.COUNTS,
+        payload={"counts": np.array([2])}, touched=frozenset({10, 11}), n_touched=2, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=1, family=Family.PROTOTYPE,
+        payload={"0": np.array([10.0, 20.0])},
+        touched=frozenset({20, 21, 22}), n_touched=3, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=1, family=Family.COUNTS,
+        payload={"counts": np.array([3])}, touched=frozenset({20, 21, 22}), n_touched=3, passes_over_data=1,
+    ))
+
+    agg = shadow_runner._reconstruct_prototype_aggregate(list(ledger), task_k=0, n_classes=1, d=2)
+    expected = (2 * np.array([0.0, 0.0]) + 3 * np.array([10.0, 20.0])) / 5
+    np.testing.assert_allclose(agg[0], expected)
+
+
+def test_gram_aggregate_is_the_sum_of_per_client_payloads():
+    """GRAM's `aggregate` has no weighting to check (it is `Sigma_c R_c`, per its own docstring) --
+    this just pins that it really is the plain sum, not e.g. an average."""
+    from p3fcl.artifacts import ArtifactRecord, Family, Ledger
+
+    ledger = Ledger()
+    R0 = np.array([[1.0, 0.0], [0.0, 1.0]])
+    R1 = np.array([[2.0, 1.0], [1.0, 2.0]])
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=0, family=Family.GRAM, payload={"R": R0},
+        touched=frozenset({10}), n_touched=1, passes_over_data=1,
+    ))
+    ledger.add(ArtifactRecord(
+        round=0, task=0, client=1, family=Family.GRAM, payload={"R": R1},
+        touched=frozenset({20}), n_touched=1, passes_over_data=1,
+    ))
+
+    agg_R = shadow_runner._reconstruct_gram_aggregate(list(ledger), task_k=0, d=2)
+    np.testing.assert_array_equal(agg_R, R0 + R1)
+
+
+def test_load_shadow_store_old_bare_scores_key_loads_as_view_full(tmp_path):
+    """FX4h test requirement: "Old npz files with the key `scores` load as view `full`." Pre-fix
+    shadow files (written before FX4h added multi-view scoring) carry a single bare `scores` array
+    and no `views` key; `run_lira.load_shadow_store` must keep loading them under the default
+    `view="full"` without requiring a regeneration of the whole shadow store."""
+    import json
+
+    run_lira = _load_run_lira_module()
+
+    shadow_dir = tmp_path / "shadows_old"
+    shadow_dir.mkdir()
+    (shadow_dir / "targets.json").write_text(json.dumps([{"target_id": 0, "task": 0, "client": 0}]))
+    old_scores = np.array([[[0.5, 0.6, 0.7]]])  # (n_shadows=1 slot, n_targets=1, n_rounds=3)
+    np.savez(
+        shadow_dir / "shadow_000000.npz", shadow_id=0, target_ids=np.array([0]),
+        scores=old_scores[0], in_out=np.array([True]),
+    )
+
+    store = run_lira.load_shadow_store(shadow_dir)
+    assert store["view"] == "full"
+    np.testing.assert_array_equal(store["scores"][0], old_scores[0])
+
+    with pytest.raises(ValueError):
+        run_lira.load_shadow_store(shadow_dir, view="aggregate")
+
+
+def test_load_shadow_store_new_format_selects_requested_view(tmp_path):
+    """New (post-FX4h) shadow files carry a `views` array plus one `scores_<view>` key per applicable
+    view; `load_shadow_store` must route to the requested one and refuse a view the file never
+    computed (e.g. `aggregate`/`global` for an M0/F1 shadow, which only ever has `full`)."""
+    import json
+
+    run_lira = _load_run_lira_module()
+
+    shadow_dir = tmp_path / "shadows_new"
+    shadow_dir.mkdir()
+    (shadow_dir / "targets.json").write_text(json.dumps([{"target_id": 0, "task": 0, "client": 0}]))
+    scores_full = np.array([[0.1, 0.2, 0.3]])
+    scores_global = np.array([[0.9, 0.8, 0.7]])
+    np.savez(
+        shadow_dir / "shadow_000000.npz", shadow_id=0, target_ids=np.array([0]),
+        in_out=np.array([True]), views=np.array(["full", "global"], dtype="U16"),
+        scores_full=scores_full, scores_global=scores_global,
+    )
+
+    store_full = run_lira.load_shadow_store(shadow_dir, view="full")
+    np.testing.assert_array_equal(store_full["scores"][0], scores_full)
+
+    store_global = run_lira.load_shadow_store(shadow_dir, view="global")
+    np.testing.assert_array_equal(store_global["scores"][0], scores_global)
+
+    with pytest.raises(ValueError):
+        run_lira.load_shadow_store(shadow_dir, view="aggregate")
+
+
+def test_load_shadow_store_max_shadows_restricts_by_shadow_id(tmp_path):
+    """FX2's `a1_m0_budget_check.csv` needs M0's existing 4096-shadow store subsampled down to the
+    1024-shadow budget every other method got in wave V2, by filename prefix, no regeneration."""
+    import json
+
+    run_lira = _load_run_lira_module()
+
+    shadow_dir = tmp_path / "shadows_budget"
+    shadow_dir.mkdir()
+    (shadow_dir / "targets.json").write_text(json.dumps([{"target_id": 0, "task": 0, "client": 0}]))
+    for shadow_id in (0, 1, 1023, 1024, 2000):
+        np.savez(
+            shadow_dir / f"shadow_{shadow_id:06d}.npz", shadow_id=shadow_id, target_ids=np.array([0]),
+            in_out=np.array([True]), scores=np.array([[0.1, 0.2, 0.3]]),
+        )
+
+    full_store = run_lira.load_shadow_store(shadow_dir)
+    assert sorted(full_store["shadow_ids"].tolist()) == [0, 1, 1023, 1024, 2000]
+
+    restricted = run_lira.load_shadow_store(shadow_dir, max_shadows=1024)
+    assert sorted(restricted["shadow_ids"].tolist()) == [0, 1, 1023]

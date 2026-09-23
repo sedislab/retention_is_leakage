@@ -1,0 +1,29 @@
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+delta: 1.0e-05
+eps_grid:
+- 0.5
+- 1
+- 2
+- 4
+- 8
+- .inf
+gamma: 1.0
+lambda_grid:
+- 0.01
+- 0.1
+- 1.0
+- 10.0
+- 100.0
+p_grid_base:
+- 32
+- 64
+- 128
+- 256
+purpose: FX5 M9 hyperparameter selection (ref split only)
+seed: 0
+units:
+- U1
+- U2

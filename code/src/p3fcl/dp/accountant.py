@@ -1,4 +1,5 @@
-"""RDP composition and the task-disjointness checker (V1-V5, RESEARCH_PLAN.md §4.3).
+"""RDP composition, the task-disjointness checker (V1-V5, RESEARCH_PLAN.md §4.3), and the lifelong
+accountant (`account`/`extrapolate_lifelong`, FX1 rewrite, `08_FIX_PLAN.md` §6).
 
 `check_disjointness` reads only the `Ledger` — never a method's internals — which is what makes it
 usable as an external certifier rather than something a method can quietly satisfy by construction.
@@ -8,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import numpy as np
+import pandas as pd
 
 from ..artifacts import Ledger
 from ..units import Unit
@@ -113,69 +115,197 @@ def check_disjointness(ledger: Ledger) -> DisjointnessReport:
     return DisjointnessReport(task_disjoint=(len(violations) == 0), violations=violations, details=details)
 
 
-def _max_task_touch_multiplicity(ledger: Ledger) -> int:
-    """How many times, in the worst case, a single datum is effectively touched within one task --
-    across records (repeated release) AND within a single record (`passes_over_data`, e.g. multiple
-    local SGD epochs over the same shard in one release). Both are real sequential-composition
-    events; counting only one of them would under-report exactly the way CLAUDE.md non-negotiable #2
-    warns against (a method with `local_epochs=30` must not get the same eps(T) curve as one with
-    `local_epochs=1` just because both happen to emit one ledger record per task)."""
-    counts: dict = {}
-    for r in ledger:
-        for d in r.touched:
-            key = (d, r.task)
-            counts[key] = counts.get(key, 0) + max(1, r.passes_over_data)
-    return max(counts.values()) if counts else 1
+def _client_task_ids(stream) -> dict:
+    """`(client, task) -> frozenset(ids)` -- one client's own shard at one task-epoch, read directly
+    off the `stream` (list of lists of `streams.Shard`) that produced the ledger. This is the
+    per-instance "D(u)" for U2, and the building block U3/U4 union over."""
+    out: dict = {}
+    for t, task_shards in enumerate(stream):
+        for shard in task_shards:
+            out[(shard.client, t)] = frozenset(int(i) for i in shard.ids)
+    return out
 
 
-@dataclass
-class LifelongResult:
-    eps_of_T: object  # Callable[[int], float]
-    regime: str
-    lifelong: bool
-    disjointness: DisjointnessReport
+def _instance_m_T(records_upto_T: list, ids: frozenset) -> tuple:
+    """`(m_T, m_T_passes)` for one unit instance with private data `ids`: the count of records in
+    `records_upto_T` whose `touched` intersects `ids` at all (m_T, per Lemma 8 -- a record either
+    read some of this unit's data or it didn't, no double-counting within one record), and the same
+    count weighted by `max(1, passes_over_data)` (m_T_passes, secondary/appendix only per
+    `08_FIX_PLAN.md` §6)."""
+    if not ids:
+        return 0, 0
+    m, mp = 0, 0
+    for r in records_upto_T:
+        if r.touched & ids:
+            m += 1
+            mp += max(1, r.passes_over_data)
+    return m, mp
 
 
-def account(ledger: Ledger, sigma: float, unit, delta: float) -> LifelongResult:
-    """Route each release to the right accounting regime:
-    task-disjoint + U2 -> parallel composition, eps constant in T (**T1-fwd**).
-    U4 (client-level, unbounded) -> sequential composition over all T tasks, eps unbounded (**H1**).
-    otherwise -> sequential RDP composition at `max_task_touches x rounds_per_task` uses per T.
+def account(ledger: Ledger, stream, unit, sigma: float, delta: float, window: int = 3) -> pd.DataFrame:
+    """FX1 (`08_FIX_PLAN.md` §6): the unified lifelong accountant. For every observed horizon
+    `T = 1..len(stream)`, and every "unit instance" u of the given `unit` (an id for U1/U5, a
+    `(client, task)` shard for U2, a `window`-wide rolling window of one client's shards for U3, or
+    one client's entire history-so-far for U4), computes
+
+        m_T(u) = #{records r : r.task < T and touched(r) & D(u) != empty}
+
+    and reports `eps(T) = max_u eps_gaussian_composed(sigma, m_T(u), delta)` -- the worst-case unit.
+    No unit gets a hard-coded routing branch (the old accountant's task-disjoint-implies-parallel-
+    composition special case and its unconditional-sequential U4 case are both now just what falls
+    out of this one rule): a task-disjoint ledger under U2 has every shard's own release be the only
+    record that ever touches it, so m_T(u) is 1 forever and eps(T) is flat by construction, not by an
+    `if report.task_disjoint` branch.
+
+    `m_T_passes` (the same count weighted by `max(1, passes_over_data)`) is reported alongside `m_T`
+    for the *argmax* instance only, as a secondary/appendix column -- per the plan, the primary `eps`
+    column is driven by the unweighted record count `m_T`, not by passes. This is a real, deliberate
+    narrowing versus the pre-fix accountant's `_max_task_touch_multiplicity` (which folded
+    `passes_over_data` directly into the composed count `k`); flagged in `notes/` and STATE.md rather
+    than silently carried over, since CLAUDE.md non-negotiable #2 makes under-reporting privacy loss
+    a serious failure mode to watch for even when the plan itself specifies the narrower definition.
+
+    Returns one row per `T` with columns `T, unit, window, m_T, m_T_passes, argmax_instance, eps`.
+    U5 is not given special handling -- `08_FIX_PLAN.md` states U5 = U1 under this project's
+    one-person-one-example renewal model, so callers pass `Unit.EXAMPLE` for both and do not plot U5
+    separately.
     """
     unit = unit if isinstance(unit, Unit) else Unit(unit)
-    report = check_disjointness(ledger)
+    if unit == Unit.INDIVIDUAL:
+        unit = Unit.EXAMPLE
+    n_tasks = len(stream)
+    records = list(ledger)
+    ct_ids = _client_task_ids(stream)
+    clients = sorted({c for c, _ in ct_ids})
 
-    if report.task_disjoint and unit == Unit.TASK:
-        eps_single = eps_gaussian_composed(sigma, k=1, delta=delta)
-        return LifelongResult(
-            eps_of_T=lambda T, _e=eps_single: _e,
-            regime="parallel-composition (task-disjoint, U2)",
-            lifelong=True,
-            disjointness=report,
-        )
+    rows = []
+    for T in range(1, n_tasks + 1):
+        records_upto_T = [r for r in records if r.task < T]
 
-    if unit == Unit.CLIENT_LIFELONG:
-        def eps_of_T(T, _sigma=sigma, _delta=delta):
-            return eps_gaussian_composed(_sigma, k=T, delta=_delta)
+        if unit == Unit.EXAMPLE:
+            # U1 (== U5): one instance per private example id -- cheaper to invert the loop (walk
+            # records once, accumulate per-id counts) than to re-scan all records per id.
+            counts: dict = {}
+            passes: dict = {}
+            for r in records_upto_T:
+                w = max(1, r.passes_over_data)
+                for d in r.touched:
+                    counts[d] = counts.get(d, 0) + 1
+                    passes[d] = passes.get(d, 0) + w
+            if counts:
+                best_id = max(counts, key=counts.get)
+                m_T, m_T_passes, argmax = counts[best_id], passes[best_id], f"id={best_id}"
+            else:
+                m_T, m_T_passes, argmax = 0, 0, None
 
-        return LifelongResult(
-            eps_of_T=eps_of_T,
-            regime="sequential-composition (U4, unbounded client-level)",
-            lifelong=False,
-            disjointness=report,
-        )
+        elif unit == Unit.TASK:
+            # U2: each (client, task) shard is its own fixed instance.
+            best_m, best_mp, argmax = -1, 0, None
+            for (c, k), ids in ct_ids.items():
+                m, mp = _instance_m_T(records_upto_T, ids)
+                if m > best_m:
+                    best_m, best_mp, argmax = m, mp, f"client={c},task={k}"
+            m_T, m_T_passes = max(best_m, 0), best_mp
 
-    max_touches = _max_task_touch_multiplicity(ledger)
+        elif unit == Unit.CLIENT_BOUNDED:
+            # U3: a rolling window of `window` consecutive tasks for one client, worst case over
+            # every start s (windows may be shorter than `window` at the tail of the stream).
+            best_m, best_mp, argmax = -1, 0, None
+            for c in clients:
+                for s in range(n_tasks):
+                    ks = range(s, min(s + window, n_tasks))
+                    ids = frozenset().union(*(ct_ids.get((c, k), frozenset()) for k in ks))
+                    m, mp = _instance_m_T(records_upto_T, ids)
+                    if m > best_m:
+                        best_m, best_mp, argmax = m, mp, f"client={c},window=[{s},{min(s + window, n_tasks)})"
+            m_T, m_T_passes = max(best_m, 0), best_mp
 
-    def eps_of_T(T, _sigma=sigma, _delta=delta, _m=max_touches):
-        return eps_gaussian_composed(_sigma, k=max(1, T * _m), delta=_delta)
+        elif unit == Unit.CLIENT_LIFELONG:
+            # U4: one client's ENTIRE footprint revealed so far (tasks 0..T-1) -- an unbounded window
+            # that grows with T, unlike U3's fixed width.
+            best_m, best_mp, argmax = -1, 0, None
+            for c in clients:
+                ids = frozenset().union(*(ct_ids.get((c, k), frozenset()) for k in range(T)))
+                m, mp = _instance_m_T(records_upto_T, ids)
+                if m > best_m:
+                    best_m, best_mp, argmax = m, mp, f"client={c}"
+            m_T, m_T_passes = max(best_m, 0), best_mp
 
-    return LifelongResult(
-        eps_of_T=eps_of_T,
-        regime=f"sequential-composition ({unit.value}, {max_touches} touches/task)",
-        lifelong=False,
-        disjointness=report,
-    )
+        else:
+            raise ValueError(f"account: unsupported unit {unit}")
+
+        eps = eps_gaussian_composed(sigma, k=m_T, delta=delta)
+        rows.append({
+            "T": T, "unit": unit.value, "window": window, "m_T": m_T, "m_T_passes": m_T_passes,
+            "argmax_instance": argmax, "eps": eps,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def extrapolate_lifelong(
+    df: pd.DataFrame, sigma: float, delta: float, T_max: int = 1000, n_extrap_points: int = 25,
+    T_values=None,
+) -> pd.DataFrame:
+    """FX1: extends `account()`'s observed rows (`T = 1..n_observed`) out to `T_max` by classifying
+    the regime from the *second half* of the observed range and extrapolating analytically -- never
+    by re-running `account()` at large T, which would need a stream/ledger that doesn't exist yet.
+
+    **Contractive**: `m_T` is constant over the second half of the observed range -> held flat
+    forever (`eps` flat too). **Accumulating**: otherwise -> a degree-1 fit of `m_T` vs `T` over the
+    second half is extended linearly. Adds `observed` (1 for real rows, 0 for extrapolated ones) and
+    `regime` (`"contractive"` or `"accumulating"`, same for every row of this `(method, unit)`) so a
+    plot can draw the observed part solid and the extrapolated part dashed.
+
+    Extrapolated `T` values default to a log-spaced grid from the last observed `T` to `T_max`
+    (rounded to distinct integers) -- `T_max` can be 1000 while the observed range is only 10-50
+    tasks, so a dense per-integer sweep there would be almost entirely redundant, flat or
+    near-linear points. Pass `T_values` (e.g. from a test that needs `eps` at specific, exact
+    horizons) to extrapolate at exactly those `T` instead of the default grid.
+    """
+    df = df.sort_values("T").reset_index(drop=True)
+    n_observed = len(df)
+    if n_observed == 0:
+        raise ValueError("extrapolate_lifelong: empty observed DataFrame")
+
+    half = max(1, -(-n_observed // 2))  # ceil(n_observed / 2): "the second half" of the observed range
+    tail = df.iloc[-half:]
+    m_vals = tail["m_T"].to_numpy(dtype=float)
+    T_vals = tail["T"].to_numpy(dtype=float)
+
+    last_T = int(df["T"].iloc[-1])
+    last_m = float(df["m_T"].iloc[-1])
+    is_constant = bool(np.allclose(m_vals, m_vals[0]))
+    if is_constant or len(T_vals) < 2:
+        regime = "contractive"
+        slope = 0.0
+    else:
+        slope = float(np.polyfit(T_vals, m_vals, 1)[0])
+        regime = "contractive" if np.isclose(slope, 0.0, atol=1e-9) else "accumulating"
+
+    rows = df.to_dict("records")
+    for r in rows:
+        r["observed"] = 1
+        r["regime"] = regime
+
+    if T_values is not None:
+        extra_T = sorted({int(t) for t in T_values if int(t) > last_T})
+    elif last_T < T_max:
+        extra_T = sorted(set(np.unique(np.geomspace(last_T + 1, T_max, num=n_extrap_points)).round().astype(int).tolist()))
+        extra_T = [t for t in extra_T if t > last_T]
+    else:
+        extra_T = []
+    if extra_T:
+        for T in extra_T:
+            m_T = last_m if regime == "contractive" else max(0.0, last_m + slope * (T - last_T))
+            eps = eps_gaussian_composed(sigma, k=max(0, int(round(m_T))), delta=delta)
+            rows.append({
+                "T": T, "unit": df["unit"].iloc[0], "window": df["window"].iloc[0], "m_T": m_T,
+                "m_T_passes": float("nan"), "argmax_instance": None, "eps": eps,
+                "observed": 0, "regime": regime,
+            })
+
+    return pd.DataFrame(rows)
 
 
 def filter_exhaustion(eps_budget: float, sigma: float, delta: float, alpha_grid=None) -> int:

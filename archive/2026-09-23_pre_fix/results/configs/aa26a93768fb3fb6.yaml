@@ -1,0 +1,6 @@
+count: 128
+dataset: cub200
+method: m8_analytic
+purpose: shadow federation runner
+seed: 0
+start: 3712

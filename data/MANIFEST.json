@@ -1,22 +1,25 @@
 {
   "camelyon17": {
     "bytes": 10654814495,
+    "caveat": "The official wilds.get_dataset(\"camelyon17\", download=True) path downloads from worksheets.codalab.org, which times out on every connection attempt from the Kodiak login node (TCP connect to 20.232.203.197:443 times out after 10s; general outbound access is otherwise fine). Worked around with a Hugging Face community re-hosting of the same WILDS release instead -- verified identical schema (image bytes, tumor label, center/hospital id 0-4, patient, node, slide, x/y coordinates) and identical per-center row counts to the official dataset card. Camelyon17 is CC0 public domain, so the re-hosting carries the same license. See code/scripts/build_camelyon17_from_hf_mirror.py and notes/2026-09-21_fig18_camelyon17.md.",
     "fetched_utc": "2026-09-15T21:24:57.795593+00:00",
     "license": "CC0 (Camelyon17 / WILDS, de-identified histopathology patches)",
-    "mirrors_tried": [],
+    "mirrors_tried": [
+      "wilds.get_dataset(camelyon17, download=True) -> worksheets.codalab.org/rest/bundles/0xe45e15f39fb54e9d9e919556af67aabe/contents/blob/ (BLOCKED: connection timeout from Kodiak)"
+    ],
     "n_classes": 2,
     "n_images_full": 455954,
     "n_images_subsampled": 4998,
     "natural_partition_field": "domain (hospital)",
-    "prepare_source_hash": "94a8e118760ad834ee8c5ce3cb7cca247d04a8fce490450c9a6eb853a264dc8b",
-    "prepared_utc": "2026-09-22T04:22:10.179497+00:00",
+    "prepare_source_hash": "aad26dcf2dd0a4aa5703866160c1558cb0de249c557457d99f9b1f0b4527837f",
+    "prepared_utc": "2026-09-23T16:45:24.292593+00:00",
     "splits": {
       "ref": 500,
       "test": 500,
       "train": 3998
     },
     "subsample_note": "class+hospital-stratified subsample to ~5000 of 455954",
-    "url_used": "wilds.get_dataset(camelyon17, download=True)"
+    "url_used": "https://huggingface.co/datasets/wltjr1007/Camelyon17-WILDS"
   },
   "cifar100": {
     "bytes": 169001437,

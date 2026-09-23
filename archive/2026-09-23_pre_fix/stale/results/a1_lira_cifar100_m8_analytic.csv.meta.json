@@ -1,0 +1,16 @@
+{
+  "source_hash": "c92294be6f5b0fcc8b9195d0d1ec904e5ee2b931e1eeb57160a9c49a4cfeefe8",
+  "config_hash": "517bd347b8b331c9",
+  "seed": 0,
+  "hostname": "kodiak",
+  "pbs_jobid": null,
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-16T21:10:47.305905+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/a1_lira_cifar100_m8_analytic.csv",
+  "utc_end": "2026-09-16T21:10:52.487604+00:00",
+  "wall_seconds": 5.181699
+}

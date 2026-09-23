@@ -138,6 +138,66 @@ artifacts. Target: Spearman ρ ≥ 0.5, p < 0.05, ≥8 methods × ≥3 datasets.
   on CIFAR-100/CUB-200 for identically-shaped data (root cause not fully confirmed — likely
   compression-ratio-dependent `np.savez_compressed` decode cost — worked around by parallelizing the
   35 combos 12-at-a-time on the login node rather than running sequentially).
+- **CORRECTION (2026-09-23, `08_FIX_PLAN.md` FX2): every decoupling-ratio number above this line is
+  built on an invalid half-life extrapolation and should not be cited.** The post-review audit (R1-R12)
+  that produced `08_FIX_PLAN.md` found the pre-fix half-life fit extrapolated an exponential curve far
+  beyond the observed horizon whenever leakage hadn't visibly decayed yet, and reported the result as
+  literal `∞` — exactly the practice Definition 10 (the plan's replacement) explicitly forbids: "the
+  first e ≥ 1 at which the normalised value is ≤ 1/2... censored at E=6 if no crossing occurs, reported
+  as a lower bound `> 6`, never extrapolated, never reported as infinite." Every `∞` cell in the tables
+  above is a symptom of that bug, not a real finding.
+  **Rebuilt on wave V2 (post-FX4 fixed methods, real ledgers) with Definition 10's non-parametric
+  first-crossing + hierarchical bootstrap (2000 replicates, `code/scripts/build_fx2_summary.py` /
+  `build_fx2_accuracy_summary.py` / `build_fx2_decoupling_ratio.py`), fixed-k population K={0,1,2,3},
+  E_MAX=6, all 3 datasets complete — **the honest result is much less clean than the pre-fix tables
+  suggested**:
+
+  | Method (cifar100) | h_acc | h_leak (tpr1, trajectory) | ratio_type |
+  |---|---|---|---|
+  | M0 (none) | 0.87 [ok] | censored (>6) | **lower_bound, rho >= 6.9** |
+  | M1, M2, M3, M5 | censored (>6) | censored (>6), except M1/cub200 h_leak=4.47 [ok] | **undefined** |
+  | M4 (full view) | censored (>6) | censored (>6) | **by_construction** (per-client full view is constant by construction, FX4h) |
+  | M4 (aggregate/global) | censored (>6) | censored (>6) | **undefined** |
+  | M8 (full view) | censored (>6) | censored (>6) | **by_construction** |
+  | M8 (aggregate/global) | censored (>6) | censored (>6) | **undefined** |
+
+  **M0 across all 3 datasets is itself not one consistent story**:
+
+  | dataset | h_acc | h_leak | ratio | ratio_type |
+  |---|---|---|---|---|
+  | cifar100 | 0.87 [ok] | censored (>6) | >= 6.87 | lower_bound |
+  | cub200 | 2.22 [ok] | 1.08 [ok] | **0.49** | **point (reversed!)** |
+  | imagenet_r | 0.76 [ok] | censored (>6) | >= 7.91 | lower_bound |
+
+  On CUB-200, M0's leakage decays *faster* than its accuracy (both are real, non-censored crossings,
+  checked against the raw per-e curves) — the opposite direction from the other two datasets. This
+  echoes the pre-fix M3/CUB-200 reversal already on record just below ("the reverse of every other
+  method/dataset pairing") — a second, independent reversal on the same dataset is worth treating as
+  a real pattern (CUB-200's small-per-class-n, fine-grained regime), not a coincidence.
+
+  **Why**: every actual retention method's accuracy is now SO effective at resisting forgetting
+  (post-FX4 fixes) that its accuracy half-life doesn't cross within the E=6 observed horizon either —
+  not just the leakage side. A ratio needs BOTH sides to cross to be well-defined (or the numerator
+  alone, for a `lower_bound`); with the denominator also censored, `decoupling_ratio()` correctly
+  reports `undefined` rather than fabricating a number, per its own explicit contract
+  (`code/src/p3fcl/halflife.py`). **This is not a weaker version of the same finding — it is a
+  different finding.** M0 (no retention) now has the ONE well-defined, non-extrapolated decoupling
+  signal in the whole table (leakage persists past the point where accuracy has already halved, by at
+  least a factor of ~6.9) — arguably the cleanest possible statement of the paper's thesis (retention
+  keeps leakage alive after forgetting would have erased it), but it is a statement about the BASELINE,
+  not about the retention methods the paper is actually about. For the retention methods themselves,
+  the honest post-fix statement is "leakage persists for at least as long as our 6-task observation
+  window, same as accuracy does" — real, but not the dramatic 3.71x-134x multiplier the pre-fix numbers
+  claimed.
+  **What would resolve this**: a longer observation horizon (bigger `E_MAX`, which needs a bigger
+  `K_SET`/`n_tasks` than this phase's fixed 10-task streams support) would let a genuinely slower
+  accuracy decay eventually cross 50%, at which point the ratio would become defined again. Out of
+  scope for this fix phase (`E_MAX=6` and `n_tasks=10` are `08_FIX_PLAN.md`'s own fixed design, not
+  something to change mid-phase); flagged here for whoever scopes a follow-up.
+  **Status stays `OPEN`** (this correction neither confirms nor refutes H2 — it corrects the
+  evidentiary record and narrows what can currently be claimed). Full data:
+  `results/decoupling_ratio.csv`, `results/fig02_halflife.csv`; writeup:
+  `notes/2026-09-23_fx2_decoupling_ratio_post_fix.md`.
 - **A small, explicitly-scoped-down within-method dose-response pilot ran 2026-09-21** (under a hard
   external deadline that ruled out the full ≥6-level x ≥3-method x ≥2-dataset sweep this entry's
   "Empiricist's proposed upgrade" line calls for): M5 (HybridReplay) on CIFAR-100, 3 levels of its
@@ -152,30 +212,45 @@ artifacts. Target: Spearman ρ ≥ 0.5, p < 0.05, ≥8 methods × ≥3 datasets.
   | 10 | -0.047 | 0.043 |
   | 20 | -0.009 | 0.049 |
 
-  This is real, motivating evidence for H2's causal direction *within one method* — but status stays
-  `OPEN`, not `SUPPORTED`, because it is 1 method x 1 dataset x 3 levels, far short of H2's own ≥8
-  methods x ≥3 datasets bar and short even of the "upgrade" line's ≥6-levels-on-2-3-methods bar. Do not
-  let this pilot be cited as if it clears H2's deciding test — `paper/PAPER_BRIEFING.md`'s C2 section
-  has the exact honest framing to use in the paper.
+  This is real, motivating evidence for H2's causal direction *within one method* — but status stayed
+  `OPEN`, not `SUPPORTED`, because it was 1 method x 1 dataset x 3 levels. **Superseded by the FX8
+  rerun below — kept here as an honest historical record, not to be cited over the real sweep.**
+- **CORRECTION (2026-09-23, `08_FIX_PLAN.md` FX8) — the real dose-response sweep**: CIFAR-100, 2
+  methods x 6 levels {1,2,5,10,20,50} x 3 seeds x 512 shadows/level (18,432 shadows), leakage pooled
+  over K=[0,1,2,3] at elapsed=6 (`results/fig03_dose_response.csv`, `figs/fig03_dose_response.pdf`,
+  `notes/2026-09-23_fx8_dose_response_result.md`). **Retention (-BWT) rises identically for both
+  methods as the knob increases** (both ~0.25 at level=1 down to ~-0.05 at level=50 — matched by
+  construction). **Leakage does NOT rise identically**: M5 (individual/exemplar, F8) climbs steeply,
+  TPR@1%FPR ~0.03 -> ~0.09 (mean; individual seeds over 0.10-0.15) across the same range; M2
+  (semantic/Gaussian, F6) stays much flatter, ~0.03 -> ~0.045, turning back down slightly at the
+  highest level. At the top retention-strength level, M5's leakage is roughly double M2's despite
+  matched retention benefit. This is real, quantified, CI-supported evidence for H2's causal claim
+  *and* directly answers the semantic/individual objection below in the same sweep. Still **short of
+  H2's own ≥8-methods x ≥3-datasets bar** (this clears the "upgrade" line's ≥6-levels-on-2-3-methods
+  bar, not H2's full deciding test) — **status stays `OPEN`**, not `SUPPORTED`. Do not cite the
+  2026-09-21 pilot's numbers above over this rerun.
 - **M3's outsized signal vs. M1/M2's more modest ones is itself relevant to the Red Team's semantic-
   vs-individual objection below** — subspace projection (M3) plausibly protects individual gradient
   directions more directly than exemplar/generative *summaries* (M1/M2) do. Worth a direct comparison
   when the formal dose-response sweep is scoped.
 - Owner: Empiricist · Blast radius: **Very high** (Paper A's framing; §7.2 is the fallback)
 - Known strongest objection (Red Team): retention is semantic, membership is individual; a method can
-  retain class means perfectly and leak nothing example-specific. **Given a real, preliminary answer
-  2026-09-21** (`notes/2026-09-21_p5_dose_response_pilot_m4_semantic_arm.md`,
-  `results/fig04_semantic_vs_individual.csv`): M5 (individual/exemplar retention) shows a strong,
-  clean, monotonic dose-response (see the pilot above); M4 (semantic/prototype retention) is
-  completely flat on both -BWT and TPR@1%FPR across the same 3-level/3-seed design — and this flatness
-  has a confirmed mechanistic cause, not just an empirical non-finding: M4's momentum-blending branch
-  in `m4_proto.py` only fires when a `(client, class)` key recurs across tasks, and
-  `streams.py::build_stream`'s default class-incremental split means every class is assigned to
-  exactly one task, so that branch is provably dead code under every dataset this project uses. Still
-  **not the full sweep** the objection ultimately needs (≥3 methods x ≥2 datasets to be conclusive),
-  and untested under a domain-incremental stream where the branch *would* fire — but this is real,
-  mechanistically-grounded, positive evidence for the semantic/individual split the objection predicts,
-  not an "unanswered" gap anymore.
+  retain class means perfectly and leak nothing example-specific. A preliminary answer from
+  2026-09-21 used M4 (semantic/prototype) vs. M5 (individual/exemplar)
+  (`notes/2026-09-21_p5_dose_response_pilot_m4_semantic_arm.md`) and found M4 completely flat on both
+  axes — traced to a confirmed mechanistic cause: M4's momentum-blending branch in `m4_proto.py` only
+  fires when a `(client, class)` key recurs across tasks, and `streams.py::build_stream`'s default
+  class-incremental split means every class is assigned to exactly one task, so that branch is
+  provably dead code under every dataset this project uses. **`08_FIX_PLAN.md` §10 dropped the M4 arm
+  for exactly this reason ("its knob was dead code") and substituted M2 (semantic/Gaussian replay) as
+  the semantic-retention arm instead — see the FX8 correction above for the real result**: M2's
+  leakage rises much less steeply than M5's individual-retention leakage across the same 6-level
+  sweep, real positive evidence for the semantic/individual split the objection predicts. Also caught
+  while wiring this: `m2_target.py`'s own `MethodSpec.retention_type` was mislabeled `"individual"`
+  (never previously exercised by any FIG04 pipeline) — fixed to `"semantic"`, matching this framing
+  and the mechanism's actual per-class-distributional-summary nature. Still **not the full sweep** the
+  objection ultimately needs (≥3 methods x ≥2 datasets to be conclusive) — but this is real,
+  quantified, mechanistically-grounded evidence, not an "unanswered" gap.
 - Note: the project must be designed so H2 is upside, not load-bearing. Verify that in Round 1.
 
 ### H3 — Accumulation leakage
@@ -383,30 +458,52 @@ aggregation, because it uses the aggregate broadcast rather than individual clie
 ### H13 — "Your clients are a Dirichlet artifact" (FIG18, Camelyon17)
 *The retention-leakage decoupling effect (C1/H2) is a synthetic-client-partition artifact and would
 not appear (or would be weaker) under a real, natural federation.*
-- Status: `REFUTED` (2026-09-21, at pilot scale) — the real finding is the *opposite* direction: the
-  natural federation shows **more**, not less, leakage than the synthetic Dirichlet split.
-- **Real result** (`notes/2026-09-21_fig18_camelyon17.md`, `results/fig18_natural_federation.csv`,
-  `figs/fig18_natural_federation.pdf`): Camelyon17-WILDS, 5 real hospitals as clients (`n_clients=1`,
-  no Dirichlet anywhere) vs. the same data under a synthetic Dirichlet split (`n_clients=10`), M0,
-  domain-incremental stream (one task per hospital — Camelyon17 is binary-label, so class-incremental
-  does not apply), 3 seeds, 1,024-shadow pilot budget, ~5,000-image class+hospital-stratified
-  subsample. **Natural federation TPR@1%FPR rises from ~0.025 (elapsed=0) to ~0.055 (elapsed=4);
-  Dirichlet-subpartitioned stays flat at ~0.012-0.018 across the same range.** Synthetic partitioning
-  does not inflate this project's leakage findings — if anything it *understates* them relative to a
-  real federation's actual client structure.
-- **A real data-acquisition obstacle, worth noting for reproducibility**: the official
-  `wilds.get_dataset(dataset="camelyon17", download=True)` path is unreachable from this cluster
-  (`worksheets.codalab.org` times out at the TCP level; general internet access is otherwise fine) —
-  worked around with a verified community re-hosting of the same CC0 public-domain data
+- Status: `OPEN` (2026-09-23, post-FIG18-v2 matched-5-client redesign) — **the original `REFUTED`
+  verdict (2026-09-21) was itself built on a confounded comparison and must not be cited.** The pilot's
+  "natural" arm used `n_clients=1` (the whole hospital as one client) against the "dirichlet" arm's
+  `n_clients=10` — two variables changed at once (partition STRATEGY and client COUNT), so the observed
+  "natural leaks more" effect could not be attributed to either alone. `08_FIX_PLAN.md` itself flagged
+  this (§11: "H13 → OPEN (confounded; the natural arm had 1 client). Update it after FIG18 v2.").
+- **CORRECTION (2026-09-23, FIG18 v2, the matched-5-client redesign)**: reran with BOTH arms at
+  `n_clients=5` (matching the 5 real hospitals) — **natural** now groups by physical microscopy slide
+  (`p3fcl.get_data.prepare_camelyon17()` records `slide` per sample from `Camelyon17Dataset`'s own
+  metadata; `streams.natural_chunked_partition` distributes whole slides across 5 clients via a seeded
+  shuffle + round-robin, never splitting one slide's patches across clients) instead of the trivial
+  "whole hospital = 1 client" the pilot used; **dirichlet** is the same per-class Dirichlet(0.5) split
+  as before, just also at `n_clients=5`. Same M0, domain-incremental stream, 3 seeds, 1,024-shadow
+  budget, same ~5,000-image subsample (`results/fig18_natural_federation.csv`,
+  `figs/fig18_natural_federation.pdf`).
+  - **Leakage (the actual H13 question): the two arms' TPR@1%FPR curves now overlap almost entirely
+    within their 95% CIs at every elapsed value** (e.g. elapsed=4: natural 0.034 [0.022, 0.047] vs.
+    dirichlet 0.049 [0.018, 0.079] — point estimates close, CIs heavily overlapping, dirichlet's point
+    estimate if anything slightly *higher*, the opposite direction from the pilot). **No significant
+    natural-vs-synthetic leakage difference survives once client count is controlled** — the pilot's
+    "natural leaks more" finding does not replicate at matched client count, at this 3-seed pilot power.
+  - **Accuracy/BWT (a separate axis, checked along the way)**: `results/accuracy_matrix_camelyon17.csv`
+    also converged once client count was matched — final_avg_acc natural=[0.92,0.92,0.89] vs.
+    dirichlet=[0.93,0.93,0.89], BWT natural=[+0.012,+0.017,-0.024] vs. dirichlet=[-0.001,-0.005,-0.034]
+    — much closer than the pilot's dramatic BWT gap (natural pinned at ~-0.02 constant vs. dirichlet's
+    +0.001 to +0.030). Consistent with the leakage-side finding: the pilot's apparent "natural vs.
+    synthetic" effect looks like it was substantially a client-COUNT artifact (fewer, larger clients),
+    not a real-structure-vs-random-split effect.
+  - **Honest interpretation**: this does NOT mean "natural federations are safe" or "Dirichlet
+    understates nothing" — it means the SPECIFIC comparison this pilot ran, once properly controlled,
+    shows no clear signal at 3-seed power. A real difference smaller than this pilot's CI width could
+    still exist. Report as a null/underpowered result, not as a second REFUTED-in-the-other-direction
+    claim — do not overcorrect.
+- **A real data-acquisition obstacle, worth noting for reproducibility** (unchanged from the pilot):
+  the official `wilds.get_dataset(dataset="camelyon17", download=True)` path is unreachable from this
+  cluster (`worksheets.codalab.org` times out at the TCP level; general internet access is otherwise
+  fine) — worked around with a verified community re-hosting of the same CC0 public-domain data
   (`wltjr1007/Camelyon17-WILDS` on Hugging Face Hub), reconstructed into the exact on-disk layout the
   `wilds` package expects so `p3fcl.get_data.prepare_camelyon17()` ran unmodified against it.
 - Owner: Threat Modeler · Blast radius: **High for reviewer reception** — this was `00_BUILD_PLAN.md`'s
-  last remaining "never cut" item; all four are now real (secure-agg ablation, log-log ROCs, seed
-  variance, this one).
+  last remaining "never cut" item; getting the comparison honestly null (rather than leaving a
+  confounded REFUTED standing) is itself the responsible outcome here, not a setback.
 - **Honest scope limit**: M0 only, 3 seeds, pilot-scale subsample — not yet the full 7-method,
-  full-dataset-scale headline treatment `02_DATASETS.md §5` originally specified. `REFUTED` is
-  supportable at this scope (the direction is clear and the effect is real), but extending to more
-  methods would strengthen it further; flag as a natural next increment, not a gap to hide.
+  full-dataset-scale headline treatment `02_DATASETS.md §5` originally specified. Extending to more
+  methods and more seeds is the natural next increment if this question needs a sharper answer than
+  "no clear difference detected at this power."
 
 ### H12 — Reproduction attrition
 *At least 3 of M1–M7 will not reproduce within 2 accuracy points using public code in a reasonable

@@ -1,0 +1,6 @@
+count: 16
+dataset: cifar100
+method: m4_proto
+purpose: shadow federation runner
+seed: 0
+start: 48

@@ -1,15 +1,16 @@
-"""M3 — FOT (ICLR'24), the orthogonality-regularisation family (family F1 + subspace). Maintains a
+"""M3 — FOT (ICLR'24), the orthogonality-regularisation family (family F1 + F5 subspace). Maintains a
 running orthonormal subspace `U` spanning the dominant feature directions of every task seen so far;
 each task's local gradient is projected to remove its component along `U` before the weight update,
 so new-task learning does not overwrite directions the old tasks relied on. `projection_strength`
 (0 = plain FedAvg, 1 = full orthogonal projection) is the retention knob for FIG03/FIG04.
 
-Cacheable (head-only, frozen backbone), but **not** task-disjoint: `U` is a running statistic built
-from every prior task's features, and every subsequent release is a function of it — the model-delta
-payload literally depends on data from earlier tasks through the projection. `touched` says so
-honestly (CLAUDE.md non-negotiable #2): each release's touched set is this task's shard **union**
-every id that ever contributed to `U`. This is the "V3 anti-forgetting regularisers... old data is
-gone but old statistics re-enter the release" case named in RESEARCH_PLAN.md §4.3.
+**FX4b fix, 08_FIX_PLAN.md R3**: the subspace `U` is itself now an honest, separate release (family
+GRAM, `client=-1`, one record per task, payload = this task's feature covariance, `touched` = exactly
+this task's ids) — computing it from task data is the one genuine read of raw data; every later
+round's use of `U` to project gradients is post-processing of that already-released statistic, per
+Lemma 8 (08_FIX_PLAN.md §4b), and adds nothing further to any record's `touched`. The MODEL_DELTA
+record's `touched` is therefore exactly the current round's shard, no longer inflated by
+`_subspace_touched` accumulated across every prior task.
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ def _softmax(z: np.ndarray) -> np.ndarray:
 class FOT(FCLMethod):
     spec = MethodSpec(
         name="M3_fot",
-        families=(Family.MODEL_DELTA,),
+        families=(Family.MODEL_DELTA, Family.GRAM),
         cacheable=True,
         retention_type="individual",
         retention_knob_name="projection_strength",
@@ -44,7 +45,6 @@ class FOT(FCLMethod):
         self.projection_strength = float(config.get("projection_strength", 1.0))
         self.W = np.zeros((self.d, self.n_classes))
         self.U = np.zeros((self.d, 0))
-        self._subspace_touched: frozenset = frozenset()
         self._round = 0
 
     def rounds_per_task(self) -> int:
@@ -73,12 +73,14 @@ class FOT(FCLMethod):
         task_ids: set = set()
         for shard in client_shards:
             idx = np.array(shard.ids, dtype=int)
+            self.update_classes_seen(y[idx])
             task_ids.update(int(i) for i in idx)
             Wc = self._local_train(self.W, X[idx], y[idx])
             delta = Wc - self.W
             deltas.append(delta)
-            weights.append(len(idx))
-            touched = frozenset(int(i) for i in idx) | self._subspace_touched
+            weight = len(idx)
+            weights.append(weight)
+            touched = frozenset(int(i) for i in idx)
             records.append(
                 ArtifactRecord(
                     round=self._round,
@@ -94,6 +96,7 @@ class FOT(FCLMethod):
                         "lr": self.lr,
                         "projection_strength": self.projection_strength,
                         "subspace_rank": int(self.U.shape[1]),
+                        "agg_weight": float(weight),
                     },
                 )
             )
@@ -102,19 +105,33 @@ class FOT(FCLMethod):
             avg_delta = sum(w * d for w, d in zip(weights, deltas)) / weights.sum()
             self.W = self.W + avg_delta
 
-        # Grow the subspace with this task's dominant feature directions (bounded at rank d by QR).
+        # The subspace update reads this task's raw features -- a genuine, one-time read, honestly
+        # released as its own record (family GRAM, server-side/client=-1) rather than silently folded
+        # into every future MODEL_DELTA's touched set.
         Xt = X[sorted(task_ids)]
         Xc = Xt - Xt.mean(axis=0, keepdims=True)
         cov = Xc.T @ Xc
+        records.append(
+            ArtifactRecord(
+                round=self._round,
+                task=task_idx,
+                client=-1,
+                family=Family.GRAM,
+                payload={"R": cov},
+                touched=frozenset(task_ids),
+                n_touched=len(task_ids),
+                passes_over_data=1,
+                meta={"subspace_rank_added": self.subspace_rank},
+            )
+        )
         eigvals, eigvecs = np.linalg.eigh(cov)
         order = np.argsort(eigvals)[::-1]
         k = min(self.subspace_rank, self.d)
         new_dirs = eigvecs[:, order[:k]]
         combined = np.concatenate([self.U, new_dirs], axis=1) if self.U.shape[1] else new_dirs
         self.U, _ = np.linalg.qr(combined)
-        self._subspace_touched = self._subspace_touched | frozenset(task_ids)
         self._round += 1
         return records
 
     def predict(self, X) -> np.ndarray:
-        return np.argmax(X @ self.W, axis=1)
+        return np.argmax(self.mask_unseen_logits(X @ self.W), axis=1)

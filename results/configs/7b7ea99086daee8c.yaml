@@ -1,0 +1,10 @@
+dataset: cifar100
+delta: 1.0e-05
+eps_list:
+- 1.0
+- 4.0
+- .inf
+gamma: 1.0
+purpose: "M9 audit: empirical ROC vs analytic DP bound (08_FIX_PLAN.md \xA78)"
+seed: 0
+unit: U1

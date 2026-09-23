@@ -1,0 +1,8 @@
+T_max: 1000
+dataset: cifar100
+delta: 1.0e-05
+n_tasks: 10
+purpose: FIG05 v2 eps(T) on real post-fix ledgers (FX1)
+seed: 0
+sigma: 2.0
+window: 3

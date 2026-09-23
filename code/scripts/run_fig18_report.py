@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""FIG18 report: calibrated TPR@1%FPR (A1) + real -BWT, for M0/Camelyon17 under both the natural
-(client=hospital, n_clients=1) and Dirichlet-subpartitioned (n_clients=10) shadow stores
-(`shadows/camelyon17/m0_fedavg/fig18_<partition>/seed<N>/`), plus the already-computed real accuracy
-matrix (`results/accuracy_matrix_camelyon17.csv`). Reuses `run_lira.py`'s own
-`load_shadow_store`/`compute_log_lr_surfaces`. Writes `results/fig18_natural_federation.csv`
-(schema per `03_RESULTS_SPEC.md` FIG18: `partition, beta, method, family, elapsed, acc, tpr1, seed,
-ci_lo, ci_hi` -- long format, aggregated over seeds with `metrics.seed_ci`).
+"""FIG18 v2 report (`08_FIX_PLAN.md`'s H13 fix, matched-5-client redesign): calibrated TPR@1%FPR (A1)
++ real -BWT, for M0/Camelyon17 under both the natural (`client_field="slide"`, n_clients=5) and
+Dirichlet-subpartitioned (n_clients=5, matched) shadow stores
+(`shadows_v2/camelyon17/m0_fedavg/fig18_v2_<partition>/seed<N>/` -- NOT the old, pre-redesign
+`shadows/camelyon17/.../fig18_<partition>/` stores, which used the confounded n_clients=1-vs-10
+comparison this redesign replaces), plus the already-computed real accuracy matrix
+(`results/accuracy_matrix_camelyon17.csv`, also rebuilt for the matched-5-client redesign). Reuses
+`run_lira.py`'s own `load_shadow_store`/`compute_log_lr_surfaces`. Writes
+`results/fig18_natural_federation.csv` (schema per `03_RESULTS_SPEC.md` FIG18: `partition, beta,
+n_clients, method, family, elapsed, acc, tpr1, seed, ci_lo, ci_hi` -- long format, aggregated over
+seeds with `metrics.seed_ci`; `n_clients` is new in v2, so the CSV itself shows the comparison is now
+matched on client count, not just the accompanying prose).
 """
 from __future__ import annotations
 
@@ -20,19 +25,21 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "scripts"))
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 import run_lira  # noqa: E402
-from p3fcl import metrics  # noqa: E402
+from p3fcl import metrics, provenance  # noqa: E402
 from p3fcl import rng as rng_mod  # noqa: E402
 
 DATASET = "camelyon17"
 METHOD = "m0_fedavg"
-PARTITIONS = {"natural": 1.0, "dirichlet": 0.5}  # beta column: N/A for natural, 0.5 for dirichlet arm
+N_CLIENTS = 5  # matched across both arms -- the v2 redesign's whole point
+PARTITIONS = {"natural": ""}
+PARTITIONS["dirichlet"] = 0.5  # beta column: blank for natural (no Dirichlet draw), 0.5 for dirichlet arm
 SEEDS = [0, 1, 2]
 ELAPSED_GRID = [0, 1, 2, 3, 4]  # 5 hospitals -> horizon 4
 CALIB_FRAC = 0.8
 
 
 def _shadow_dir(partition: str, seed: int) -> Path:
-    return REPO_ROOT / "shadows" / DATASET / METHOD / f"fig18_{partition}" / f"seed{seed}"
+    return REPO_ROOT / "shadows_v2" / DATASET / METHOD / f"fig18_v2_{partition}" / f"seed{seed}"
 
 
 def _tpr1_per_elapsed(partition: str, seed: int) -> dict:
@@ -108,7 +115,7 @@ def main() -> int:
                 continue
             tpr_mean, tpr_lo, tpr_hi = metrics.seed_ci(per_seed_tpr[e])
             rows.append({
-                "partition": partition, "beta": beta if partition == "dirichlet" else "",
+                "partition": partition, "beta": beta, "n_clients": N_CLIENTS,
                 "method": METHOD, "family": "F1", "elapsed": e,
                 "acc": acc_by_elapsed.get(e, float("nan")),
                 "tpr1": tpr_mean, "ci_lo": tpr_lo, "ci_hi": tpr_hi, "n_seeds": len(per_seed_tpr[e]),
@@ -124,6 +131,13 @@ def main() -> int:
         w.writeheader()
         w.writerows(rows)
     print(f"wrote {len(rows)} rows to {out_csv}")
+
+    config = {
+        "seed": 0, "purpose": "FIG18 v2 matched-5-client report (H13 fix)",
+        "dataset": DATASET, "method": METHOD, "n_clients": N_CLIENTS, "seeds": SEEDS,
+    }
+    manifest = provenance.run_manifest(config, seed=0)
+    provenance.finalize(manifest, [out_csv])
     return 0
 
 

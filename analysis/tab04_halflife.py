@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
-"""TAB04 — half-life estimates per family, with CI, R^2, censoring flag. Reads
-`results/fig02_halflife.csv` (`scripts/build_fig02.py`'s output -- same underlying data as FIG02, a
-tabular presentation of it, not a separate computation) and writes `tables/tab04_halflife.{csv,tex}`.
+"""TAB04 — half-life estimates per family, with CI and status. Reads `results/fig02_halflife.csv`
+(FX2, `code/scripts/build_fx2_summary.py`/`build_fx2_accuracy_summary.py`'s output -- same underlying
+data as FIG02, a tabular presentation of it, not a separate computation) and writes
+`tables/tab04_halflife.{csv,tex}`.
+
+FX2 rewrite note: `status` is one of `ok` / `censored` / `no_signal` (Definition 10's three-way
+outcome, `08_FIX_PLAN.md` §7b/7c), not the old binary `censored` flag -- `no_signal` (the quantity's
+own 95%-CI lower bound didn't clear its chance floor by the required margin) is a real, distinct
+outcome from `censored` (real signal, but never decayed to half within the observed horizon) and must
+not be collapsed into it. `halflife_expfit`/`r2` (the secondary exponential-fit columns Definition 10
+allows for the appendix) are blank in the current data -- not built this pass, shown as `--`.
 """
 from __future__ import annotations
 
@@ -14,10 +22,13 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 from p3fcl.plotting import latex_escape  # noqa: E402
 
+_STATUS_LABEL = {"ok": "ok", "censored": "censored ($>E$)", "no_signal": "no signal"}
+
 
 def main() -> int:
     with open(REPO_ROOT / "results" / "fig02_halflife.csv", newline="") as f:
         rows = list(csv.DictReader(f))
+    rows.sort(key=lambda r: (r["dataset"], r["method"], r["view"], r["quantity"], r["ablation"]))
 
     out_dir = REPO_ROOT / "tables"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -28,20 +39,26 @@ def main() -> int:
         w.writerows(rows)
 
     tex_lines = [
-        r"\begin{tabular}{llllrrl}",
+        r"\begin{tabular}{lllllrrl}",
         r"\toprule",
-        r"Method & Family & Quantity & Half-life & CI & $R^2$ & Censored \\",
+        r"Dataset & Method & View & Quantity & Ablation & Half-life & CI & Status \\",
         r"\midrule",
     ]
     for r in rows:
-        censored = r["censored"] in ("True", "true", "1")
-        halflife = "no decay ($>$ " + r["horizon_tasks"] + ")" if censored else f"{float(r['halflife']):.2f}"
-        ci = "--" if censored else f"[{float(r['ci_lo']):.2f}, {float(r['ci_hi']):.2f}]"
-        r2 = "--" if r["r2"] in ("nan", "") else f"{float(r['r2']):.3f}"
+        status = r["status"]
+        if status == "ok":
+            halflife = f"{float(r['halflife']):.2f}"
+            ci = f"[{float(r['ci_lo']):.2f}, {float(r['ci_hi']):.2f}]" if r["ci_lo"] not in ("", "None") else "--"
+        elif status == "censored":
+            halflife = f"$>${float(r['halflife']):.0f}"
+            ci = "--"
+        else:  # no_signal
+            halflife = "--"
+            ci = "--"
         tex_lines.append(
-            f"{latex_escape(r['method'])} & {latex_escape(r['family'])} & "
-            f"{latex_escape(r['quantity'])} & {halflife} & {ci} & {r2} & "
-            f"{'yes' if censored else 'no'} \\\\"
+            f"{latex_escape(r['dataset'])} & {latex_escape(r['method'])} & {latex_escape(r['view'])} & "
+            f"{latex_escape(r['quantity'])} & {latex_escape(r['ablation'])} & {halflife} & {ci} & "
+            f"{_STATUS_LABEL.get(status, status)} \\\\"
         )
     tex_lines += [r"\bottomrule", r"\end{tabular}"]
     (out_dir / "tab04_halflife.tex").write_text("\n".join(tex_lines) + "\n")

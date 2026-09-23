@@ -1,0 +1,6 @@
+count: 64
+dataset: cifar100
+method: m1_glfc
+purpose: shadow federation runner
+seed: 0
+start: 320

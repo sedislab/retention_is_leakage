@@ -302,3 +302,5 @@
 {"job_id": "183410[].bcm11", "script": "scripts/pbs/camelyon17_fig18_pilot.pbs", "submitted_utc": "2026-09-22T04:28:37Z", "qsub_args": "-v DATASET=camelyon17,METHOD=m0_fedavg,SEED=1,PARTITION=dirichlet,N_CLIENTS=10"}
 {"job_id": "183411[].bcm11", "script": "scripts/pbs/camelyon17_fig18_pilot.pbs", "submitted_utc": "2026-09-22T04:28:37Z", "qsub_args": "-v DATASET=camelyon17,METHOD=m0_fedavg,SEED=2,PARTITION=natural,N_CLIENTS=1"}
 {"job_id": "183412[].bcm11", "script": "scripts/pbs/camelyon17_fig18_pilot.pbs", "submitted_utc": "2026-09-22T04:28:37Z", "qsub_args": "-v DATASET=camelyon17,METHOD=m0_fedavg,SEED=2,PARTITION=dirichlet,N_CLIENTS=10"}
+{"job_id": "183844.bcm11", "script": "scripts/pbs/run_job.pbs", "submitted_utc": "2026-09-23T01:03:12Z", "qsub_args": "-v JOBFILE=/data/islamm/retention_leakage/build/jobs/fx4f_lag_diagnostic.sh"}
+{"job_id": "183846.bcm11", "script": "scripts/pbs/run_job.pbs", "submitted_utc": "2026-09-23T01:04:53Z", "qsub_args": "-v JOBFILE=/data/islamm/retention_leakage/build/jobs/fx4g_gate.sh -l walltime=04:00:00"}

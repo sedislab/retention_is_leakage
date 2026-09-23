@@ -52,20 +52,32 @@ def roc_auc(scores, labels) -> float:
 
 def tpr_at_fpr(scores, labels, target_fpr: float) -> float:
     """TPR at the most permissive threshold whose FPR does not exceed `target_fpr` (conservative:
-    never reports a TPR that required exceeding the stated FPR budget)."""
+    never reports a TPR that required exceeding the stated FPR budget).
+
+    Vectorised via two sorts + `searchsorted` (O(n log n)) rather than a Python loop over every
+    candidate threshold with an O(n) `np.mean` inside it (O(n^2)) -- at FX2's bootstrap scale (2000
+    replicates x a pooled population of order 10^5 shadow-target pairs), the O(n^2) version measured
+    at ~10s per call, which made a single half-life bootstrap CI infeasible (2000+ calls). Computes
+    the exact same quantity over the exact same threshold set (every distinct value in `scores`, most
+    permissive first) as the original per-threshold loop -- see
+    `test_metrics.py::test_tpr_at_fpr_matches_a_bruteforce_reimplementation` for a randomized
+    equivalence check against that definition."""
     scores = np.asarray(scores, dtype=float)
     labels = np.asarray(labels, dtype=int)
     pos = scores[labels == 1]
     neg = scores[labels == 0]
     if len(pos) == 0 or len(neg) == 0:
         return float("nan")
-    thresholds = np.unique(scores)[::-1]
-    best_tpr = 0.0
-    for thr in thresholds:
-        fpr = float(np.mean(neg >= thr))
-        if fpr <= target_fpr:
-            best_tpr = max(best_tpr, float(np.mean(pos >= thr)))
-    return best_tpr
+    thresholds = np.unique(scores)  # ascending
+    neg_sorted = np.sort(neg)
+    pos_sorted = np.sort(pos)
+    # count(x >= thr) = len(x) - (index of thr's leftmost insertion point in sorted x)
+    fpr = (len(neg) - np.searchsorted(neg_sorted, thresholds, side="left")) / len(neg)
+    tpr = (len(pos) - np.searchsorted(pos_sorted, thresholds, side="left")) / len(pos)
+    valid = fpr <= target_fpr
+    if not valid.any():
+        return 0.0
+    return float(tpr[valid].max())
 
 
 def clopper_pearson(k: int, n: int, alpha: float = 0.05) -> tuple:

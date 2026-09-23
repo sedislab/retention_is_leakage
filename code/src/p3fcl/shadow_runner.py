@@ -52,6 +52,7 @@ from __future__ import annotations
 import json
 import multiprocessing as mp
 import os
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -66,6 +67,7 @@ from .methods.m3_fot import FOT
 from .methods.m4_proto import PrototypeFCL
 from .methods.m5_hybrid_replay import HybridReplay
 from .methods.m8_analytic import AnalyticFCL
+from .methods.m9_contractive import ContractiveDPAnalytic, project_and_cap
 from .sim import run as sim_run
 
 BACKBONE = "vit_base_patch16_224.augreg_in21k"
@@ -80,6 +82,7 @@ METHOD_REGISTRY = {
     "m2_target": (TARGET, Family.MODEL_DELTA),
     "m3_fot": (FOT, Family.MODEL_DELTA),
     "m5_hybrid_replay": (HybridReplay, Family.MODEL_DELTA),
+    "m9_contractive": (ContractiveDPAnalytic, Family.GRAM),
 }
 
 
@@ -113,6 +116,13 @@ def _method_config(method_name: str, n_classes: int, feature_dim: int) -> dict:
             "n_classes": n_classes, "feature_dim": feature_dim, "local_epochs": 30, "lr": 0.5,
             "buffer_size_per_class": 10,
         }
+    if method_name == "m9_contractive":
+        # Deliberately excludes `pca_basis`: only a caller with dataset (`ref` split) access can fit
+        # a real one, and it must be fit ONCE outside the per-shadow worker loop (`run_m9_audit.py`),
+        # never here (`_method_config` runs inside `_run_one_shadow`, once per shadow). A caller that
+        # forgets to supply `method_config_override["pca_basis"]` gets a loud `KeyError` from
+        # `ContractiveDPAnalytic.__init__`, not a silently-wrong default.
+        return {"n_classes": n_classes}
     raise ValueError(
         f"shadow_runner: unsupported method {method_name!r} "
         f"(scoped to {sorted(METHOD_REGISTRY)} this pass)"
@@ -172,26 +182,32 @@ def _reconstruct_running_w(ledger, n_rounds: int, feature_dim: int, n_classes: i
     (H3) something real to measure, instead of the constant-repeated-value degeneracy
     `attacks/property_inference.py` and M4/M8 both hit.
 
-    **The FedAvg weight is only an approximation for M1/M2/M3/M5, exact for M0.** The real internal
-    weight is each client's raw shard size (`len(idx)` in every method's own `fit_task`), but
-    `n_touched` -- the only per-record weight the ledger exposes -- is *honestly inflated* beyond the
-    raw shard for M1 (distillation carries forward `_all_touched_ever`, which after round 0 makes
-    every client's `n_touched` converge toward the same enormous shared total, roughly equal-weighting
-    clients rather than reflecting their true shard sizes), M2 (synthetic-replay-touched ids), M3
-    (accumulated subspace-touched ids), and M5 (replay-buffer ids) -- all per CLAUDE.md non-negotiable
-    #2 ("over-report rather than under-report" `touched`). A genuinely ledger-only observer cannot
-    recover the exact weight for these four (none of them release a companion record with the raw
-    shard size at every round), so `n_touched` is the best available proxy, not a stand-in for the
-    true value -- state this precisely rather than implying an exact replica for methods where it
-    isn't one. M0's `touched` is exactly the raw shard (no buffer, no distillation), so the
-    reconstruction is exact there. Returns one `(feature_dim, n_classes)` weight matrix per round,
-    `0..n_rounds-1`."""
+    **FX4b fix (08_FIX_PLAN.md R3): uses `meta["agg_weight"]` -- the exact weight the server gave that
+    client in that round's FedAvg, now released honestly by every F1 method -- falling back to
+    `n_touched` (with a one-time logged warning) only for pre-fix ledgers that don't carry it.** Before
+    this fix, `n_touched` was used as a *proxy* for the true weight and was honestly inflated beyond
+    the raw shard size for M1/M2/M3/M5 by buffer/subspace/replay bookkeeping that has since been
+    corrected (touched no longer accumulates post-processing reads, per Lemma 8) -- `agg_weight` is
+    the real value, not an approximation, for every method after this fix. Returns one
+    `(feature_dim, n_classes)` weight matrix per round, `0..n_rounds-1`."""
     w = np.zeros((feature_dim, n_classes))
     w_by_round = []
+    warned_fallback = False
     for r in range(n_rounds):
         recs = [rec for rec in ledger if rec.family == Family.MODEL_DELTA and rec.round == r]
         if recs:
-            weights = np.array([rec.n_touched for rec in recs], dtype=float)
+            if all("agg_weight" in rec.meta for rec in recs):
+                weights = np.array([float(rec.meta["agg_weight"]) for rec in recs], dtype=float)
+            else:
+                if not warned_fallback:
+                    warnings.warn(
+                        "shadow_runner._reconstruct_running_w: falling back to n_touched as the "
+                        "FedAvg weight -- this ledger predates FX4b's meta['agg_weight'] release and "
+                        "n_touched is only an approximation for M1/M2/M3/M5 (08_FIX_PLAN.md R3).",
+                        stacklevel=2,
+                    )
+                    warned_fallback = True
+                weights = np.array([rec.n_touched for rec in recs], dtype=float)
             if weights.sum() > 0:
                 deltas = np.stack([np.asarray(rec.payload) for rec in recs])
                 avg_delta = np.tensordot(weights, deltas, axes=(0, 0)) / weights.sum()
@@ -225,14 +241,106 @@ def _reconstruct_running_w_secure_agg(ledger, n_rounds: int, feature_dim: int, n
     return w_by_round
 
 
+def _reconstruct_prototype_global(ledger, n_rounds: int, n_classes: int, d: int) -> list:
+    """FX4h (08_FIX_PLAN.md §4h): "the server prototype bank after round r, exactly as `predict`
+    uses it." Ledger-only reconstruction (CLAUDE.md non-negotiable #1 -- never reads method internal
+    state): each PROTOTYPE record's payload for class c is *already* the post-blend value the method's
+    own `self._prototypes[c] = ...` line just set (the momentum blend happens before the record is
+    built), so replaying every record in round order with "last write for this class wins" reproduces
+    the broadcast bank exactly. Returns one `(n_classes, d)` array per round (NaN where a class has
+    never been released yet -- unlike `predict()`'s internal NaN-then-huge-distance handling, this
+    reconstruction leaves it as NaN and lets the caller decide)."""
+    bank = np.full((n_classes, d), np.nan)
+    out = []
+    for r in range(n_rounds):
+        recs = [rec for rec in ledger if rec.family == Family.PROTOTYPE and rec.round == r]
+        for rec in recs:
+            for c_str, vec in rec.payload.items():
+                bank[int(c_str)] = vec
+        out.append(bank.copy())
+    return out
+
+
+def _reconstruct_prototype_aggregate(ledger, task_k: int, n_classes: int, d: int) -> np.ndarray:
+    """FX4h: "the count-weighted mean over clients of class y at task k -- what secure aggregation
+    reveals." Combines every client's PROTOTYPE release at `task==task_k` with its paired COUNTS
+    release (same client, same round) as the weight. A class released by only one client that round
+    is unaffected (the "mean" is just that one client's value)."""
+    proto_recs = [r for r in ledger if r.family == Family.PROTOTYPE and r.task == task_k]
+    counts_recs = {r.client: r for r in ledger if r.family == Family.COUNTS and r.task == task_k}
+    agg = np.full((n_classes, d), np.nan)
+    sums = np.zeros((n_classes, d))
+    weights = np.zeros(n_classes)
+    for rec in proto_recs:
+        counts_rec = counts_recs.get(rec.client)
+        for c_str, vec in rec.payload.items():
+            c = int(c_str)
+            w = float(counts_rec.payload["counts"][c]) if counts_rec is not None else 1.0
+            if w <= 0:
+                w = 1.0
+            sums[c] += w * vec
+            weights[c] += w
+    has_weight = weights > 0
+    agg[has_weight] = sums[has_weight] / weights[has_weight, None]
+    return agg
+
+
+def _reconstruct_gram_global(ledger, n_rounds: int, d: int, gamma: float = 1.0) -> list:
+    """FX4h: "the running state after round r, exactly the matrix `predict` inverts." Ledger-only:
+    at `gamma=1.0` (M8's only mode, and the default here), the cumulative sum of every GRAM record's
+    `R` payload up to and including round r -- exactly mirroring M8's own `self._R += Rc`
+    accumulation. Generalized (`08_FIX_PLAN.md` §8's M9 audit) to `R <- gamma*R + round_sum`, applied
+    once per round transition regardless of how many client records land in that round -- this
+    exactly mirrors `ContractiveDPAnalytic.fit_task`'s own `self.R = self.gamma*self.R + G_tilde`
+    update (M9 always releases exactly one `client=-1` record per round, so "sum this round's
+    records, then decay-and-add" and "decay-and-add per record" coincide for M9; they do NOT coincide
+    for M8's multiple-per-round client records, which is why the sum happens first)."""
+    R = np.zeros((d, d))
+    out = []
+    for r in range(n_rounds):
+        recs = [rec for rec in ledger if rec.family == Family.GRAM and rec.round == r]
+        round_sum = np.zeros((d, d))
+        for rec in recs:
+            round_sum = round_sum + rec.payload["R"]
+        R = gamma * R + round_sum
+        out.append(R.copy())
+    return out
+
+
+def _reconstruct_gram_aggregate(ledger, task_k: int, d: int) -> np.ndarray:
+    """FX4h: "Sigma_c R_c for task k" -- the sum over every client's GRAM release at that one task,
+    which is exactly what a secure-aggregation broadcast of that round's contributions would reveal."""
+    recs = [r for r in ledger if r.family == Family.GRAM and r.task == task_k]
+    R = np.zeros((d, d))
+    for rec in recs:
+        R = R + rec.payload["R"]
+    return R
+
+
 def _score_target(
-    ledger, family: Family, target: dict, X: np.ndarray, y: np.ndarray, n_rounds: int, context=None
+    ledger, family: Family, target: dict, X: np.ndarray, y: np.ndarray, n_rounds: int, context=None,
+    view: str = "full", pca_basis=None, B: float = 1.0,
 ) -> np.ndarray:
-    """Per-round score, rounds `0..n_rounds-1`. NaN before the target's task and (for PROTOTYPE/GRAM)
-    if the target's entire shard vanished this shadow (e.g. a singleton shard whose only member was
-    dropped OUT). `context` is family-specific shared state computed once per shadow (currently just
-    F1's `w_by_round` from `_reconstruct_running_w`) -- families that read a single ledger record
-    directly (PROTOTYPE, GRAM) don't need one."""
+    """Per-round score, rounds `0..n_rounds-1`. NaN before the target's task and (for PROTOTYPE/GRAM
+    `full`/`aggregate`) if the target's entire shard vanished this shadow (e.g. a singleton shard
+    whose only member was dropped OUT). `context` is family-specific shared state computed once per
+    shadow (F1's `w_by_round`, or for PROTOTYPE/GRAM `global`: the per-round reconstructed bank/R).
+
+    `pca_basis`/`B` (`08_FIX_PLAN.md` §8's M9 audit): M9's running state lives in a `p`-dimensional
+    PCA-projected space (`p < d`), not the raw feature space M8's GRAM state uses -- `None` (the
+    default) leaves every existing GRAM caller (M8) untouched; a real basis projects-and-caps the raw
+    feature the same way `m9_contractive.py::project_and_cap` does before computing leverage, so the
+    matrix dimensions actually match. Detected by presence of a real `pca_basis`, not by method name,
+    so this function stays family-generic rather than gaining a method-name special case.
+
+    `view` (FX4h, 08_FIX_PLAN.md §4h) only matters for PROTOTYPE/GRAM -- F1 (MODEL_DELTA) has one view
+    (`full`) by construction, since the logit-margin attack only ever reads the global model, which is
+    identical under secure aggregation once weights are exact (Prop. 3). For PROTOTYPE/GRAM:
+    `full` = the target's own client's task-k release (constant by construction, the pre-fix-only
+    behavior); `aggregate` = the count-weighted/summed combination across every client at task k (what
+    secure aggregation reveals, still constant by construction); `global` = the running server state
+    after round r (the one view that is NOT constant by construction -- the true retention
+    measurement)."""
     scores = np.full(n_rounds, np.nan)
     k = target["task"]
     tid = target["target_id"]
@@ -250,6 +358,44 @@ def _score_target(
             scores[r] = float(true_logit - other_max)
         return scores
 
+    if family == Family.PROTOTYPE and view == "global":
+        # `context` is `_reconstruct_prototype_global`'s per-round bank list.
+        for r in range(k, n_rounds):
+            proto = context[r][label]
+            if np.any(np.isnan(proto)):
+                continue
+            scores[r] = -float(np.linalg.norm(feat - proto))
+        return scores
+
+    if family == Family.GRAM and view == "global":
+        # `context` is `_reconstruct_gram_global`'s per-round R list.
+        f = feat if pca_basis is None else project_and_cap(feat.reshape(1, -1), pca_basis, B)[0]
+        for r in range(k, n_rounds):
+            Rc = context[r]
+            if not np.any(Rc):
+                continue
+            scores[r] = float(f @ np.linalg.solve(Rc, f))
+        return scores
+
+    if view == "aggregate":
+        if family == Family.PROTOTYPE:
+            agg = context  # `_reconstruct_prototype_aggregate`'s (n_classes, d) array for this task
+            proto = agg[label]
+            if np.any(np.isnan(proto)):
+                return scores
+            scores[k:] = -float(np.linalg.norm(feat - proto))
+        elif family == Family.GRAM:
+            Rc = context  # `_reconstruct_gram_aggregate`'s (d, d) array for this task
+            f = feat if pca_basis is None else project_and_cap(feat.reshape(1, -1), pca_basis, B)[0]
+            scores[k:] = float(f @ np.linalg.solve(Rc, f))
+        else:
+            raise ValueError(f"shadow_runner: no aggregate view for family {family}")
+        return scores
+
+    # view == "full" (the only view PROTOTYPE/GRAM had before FX4h): the target's own client's
+    # record at its own task -- structurally the SAME identity a real per-client transmission would
+    # have carried under secure aggregation, i.e. NOT what a real secure-aggregation-restricted
+    # adversary could ever see (see FX3/FIG11 v2's "these are structurally unattackable" finding).
     recs = [r for r in ledger if r.family == family and r.client == target["client"] and r.task == k]
     if not recs:
         return scores
@@ -302,27 +448,87 @@ def _run_one_shadow(shadow_id: int) -> dict:
         **_method_config(s["method_name"], s["n_classes"], s["feature_dim"]),
         **s.get("method_config_override", {}),
     }
+    # M9's DP noise seed is deliberately decoupled from `sim.run`'s data seed (its own docstring:
+    # never touches `fit_task`'s `rng` argument) -- ContractiveDPAnalytic reads `config["noise_seed"]`
+    # only, defaulting to a fixed 0. Since `method_config_override` is ONE dict shared by every shadow
+    # in this `run_shadow_range` call, leaving that default in place would give every single shadow
+    # the exact SAME noise draw -- a fixed additive term carries no differential privacy at all, which
+    # would make the M9 LiRA audit (08_FIX_PLAN.md §8) meaningless at best and silently wrong at worst
+    # (the empirical mechanism under test would not be the DP-guaranteed one). Default it to the
+    # shadow's own id -- each shadow is a separate hypothetical world and must draw its own
+    # independent noise, exactly like the population-resampling seed already does -- while still
+    # letting an explicit override win, consistent with every other config key here.
+    method_cfg.setdefault("noise_seed", shadow_id)
     method = method_cls(method_cfg)
     result = sim_run(method, s["X"], s["y"], modified, seed=shadow_id)
     ledger = result["ledger"]
     n_rounds = len(modified)
 
-    context = None
+    target_ids = np.array([t["target_id"] for t in targets], dtype=int)
+    in_out = keep_mask[target_ids]
+
+    # FX4h (08_FIX_PLAN.md §4h): F1 has one view (full) by construction -- the logit-margin attack
+    # only ever reads the global model, identical under secure aggregation once weights are exact.
+    # F2 (M4)/F5 (M8) get all three views; `global` is the one NOT constant by construction and is
+    # the real retention measurement.
+    score_arrays: dict = {}
     if family == Family.MODEL_DELTA:
         if s.get("adversary_view", "full") == "secure_agg":
             context = _reconstruct_running_w_secure_agg(ledger, n_rounds, s["feature_dim"], s["n_classes"])
         else:
             context = _reconstruct_running_w(ledger, n_rounds, s["feature_dim"], s["n_classes"])
-
-    target_ids = np.array([t["target_id"] for t in targets], dtype=int)
-    in_out = keep_mask[target_ids]
-    score_matrix = np.stack(
-        [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, context) for t in targets]
-    )
+        score_arrays["full"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, context, view="full") for t in targets]
+        )
+    elif family == Family.PROTOTYPE:
+        score_arrays["full"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, view="full") for t in targets]
+        )
+        global_ctx = _reconstruct_prototype_global(ledger, n_rounds, s["n_classes"], s["feature_dim"])
+        score_arrays["global"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, global_ctx, view="global") for t in targets]
+        )
+        agg_by_task = {t["task"]: _reconstruct_prototype_aggregate(ledger, t["task"], s["n_classes"], s["feature_dim"])
+                       for t in targets}
+        score_arrays["aggregate"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, agg_by_task[t["task"]], view="aggregate")
+             for t in targets]
+        )
+    elif family == Family.GRAM:
+        # M9's running state lives in the PCA-projected p-dim space (p < d), not the raw feature
+        # space M8's GRAM state uses -- detect it by the presence of a real `pca_basis` in the
+        # method config (set once by the caller, e.g. `run_m9_audit.py`, never fit here), not by
+        # method name, so this stays a family-generic branch.
+        pca_basis = method_cfg.get("pca_basis")
+        gram_B = float(method_cfg.get("B", 1.0))
+        gram_gamma = float(method_cfg.get("gamma", 1.0))
+        gram_d = pca_basis.shape[1] if pca_basis is not None else s["feature_dim"]
+        score_arrays["full"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, view="full",
+                            pca_basis=pca_basis, B=gram_B) for t in targets]
+        )
+        global_ctx = _reconstruct_gram_global(ledger, n_rounds, gram_d, gamma=gram_gamma)
+        score_arrays["global"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, global_ctx, view="global",
+                            pca_basis=pca_basis, B=gram_B) for t in targets]
+        )
+        agg_by_task = {t["task"]: _reconstruct_gram_aggregate(ledger, t["task"], gram_d) for t in targets}
+        score_arrays["aggregate"] = np.stack(
+            [_score_target(ledger, family, t, s["X"], s["y"], n_rounds, agg_by_task[t["task"]], view="aggregate",
+                            pca_basis=pca_basis, B=gram_B) for t in targets]
+        )
+    else:
+        raise ValueError(f"shadow_runner: no view set for family {family}")
 
     tmp = out_path.with_name(out_path.name + ".tmp")
     with open(tmp, "wb") as f:
-        np.savez_compressed(f, shadow_id=shadow_id, target_ids=target_ids, in_out=in_out, scores=score_matrix)
+        np.savez_compressed(
+            f, shadow_id=shadow_id, target_ids=target_ids,
+            target_task=np.array([t["task"] for t in targets], dtype=int),
+            target_client=np.array([t["client"] for t in targets], dtype=int),
+            in_out=in_out, views=np.array(sorted(score_arrays), dtype="U16"),
+            **{f"scores_{v}": arr for v, arr in score_arrays.items()},
+        )
     os.replace(tmp, out_path)
     return {"shadow_id": shadow_id, "status": "written"}
 
@@ -350,15 +556,28 @@ def run_shadow_range(dataset: str, method: str, start: int, count: int, workers:
     # `"domain"` field per sample, keyed by sample id) -- `n_clients=1` then gives the natural
     # federation (client = hospital, no Dirichlet), `n_clients>1` gives the Dirichlet-subpartitioned
     # comparison arm, both using the exact same already-generic `streams.build_stream`.
+    # Wave V3 (08_FIX_PLAN.md's H13 fix, "matched-N-client redesign"): `stream.client_field=<name>`
+    # switches the WITHIN-task client split from `dirichlet_partition`'s random per-class draw to
+    # `natural_chunked_partition`'s field-grouped one (e.g. `"slide"` for Camelyon17), reading that
+    # named field the exact same way `use_domain_field` already reads `"domain"` -- both the "natural"
+    # and "dirichlet" comparison arms can now share the same `n_clients`, isolating partition
+    # STRATEGY from client COUNT.
     domain_field = None
     if stream_cfg.get("use_domain_field", False):
         index_path = REPO_ROOT / "datasets" / dataset / "index.json"
         index = json.loads(index_path.read_text())
         id_to_domain = {s["id"]: s["domain"] for s in index["samples"]}
         domain_field = np.array([id_to_domain[int(i)] for i in cache["ids"]])
+    client_field = None
+    client_field_name = stream_cfg.get("client_field")
+    if client_field_name:
+        index_path = REPO_ROOT / "datasets" / dataset / "index.json"
+        index = json.loads(index_path.read_text())
+        id_to_client_field = {s["id"]: s[client_field_name] for s in index["samples"]}
+        client_field = np.array([id_to_client_field[int(i)] for i in cache["ids"]])
     base_stream = streams.build_stream(
         y, np.arange(len(y)), n_tasks=n_tasks, n_clients=n_clients, beta=beta, seed=base_seed,
-        domain_field=domain_field,
+        domain_field=domain_field, client_field=client_field,
     )
 
     targets_cfg = config.get("targets", {})

@@ -59,7 +59,7 @@ def _run_accuracy(level, seed: int, X, y, n_classes: int, feature_dim: int) -> f
         KNOB_NAME: level,
     }
     result = sim.run(PrototypeFCL(cfg), X, y, stream, seed=seed)
-    return result["bwt"]
+    return result["bwt_train"]  # FX4a stopgap: proper eval_sets wiring deferred to FX8
 
 
 def _leakage_tpr1_at_elapsed(level, seed: int, elapsed: int) -> float:

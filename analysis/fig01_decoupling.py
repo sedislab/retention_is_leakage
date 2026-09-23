@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""FIG01 — retention/leakage decoupling, the headline figure (claim C1, H2, H10). Reads
-`results/fig01_decoupling.csv` (already fully aggregated by `scripts/build_fig01.py` — this script
-does no computation, per CLAUDE.md non-negotiable #3) and plots it. No property-inference (A6) panel:
-A6 is scoped to F2/M4 only (`notes/2026-09-16_p3_a6_h10.md`), a stated cut, not a silent one.
+"""FIG01 v2 — retention/leakage decoupling, the headline figure (claim C1, H2, H10; FX2,
+`08_FIX_PLAN.md`). Reads `results/fig01_decoupling.csv` (aggregated by
+`code/scripts/build_fig01_decoupling.py` — this script does no computation, CLAUDE.md non-negotiable
+#3) and plots it. No property-inference (A6) panel: A6 is scoped to F2/M4 only
+(`notes/2026-09-16_p3_a6_h10.md`), a stated cut, not a silent one.
 
-All 7 A1-validated methods, one column per dataset (2 rows: accuracy, leakage) — **grouping only by
-method name and ignoring dataset was a real bug this script had for one revision**: with two datasets
-present, the same method's rows from each dataset got sorted together by elapsed value alone and
-plotted as a single zigzagging line jumping between datasets at every point. Fixed by grouping on
-`(dataset, method)` and giving each dataset its own column.
+One column per dataset (2 rows: accuracy, leakage), grouped on `(dataset, method, view)` — **grouping
+only by `(dataset, method)` was a real bug this script had for one revision, twice over**: first
+(pre-fix) with only one dataset column, the same method's rows from two datasets got zigzagged
+together; post-FX4h, M4/M8 additionally have up to 3 SCORING VIEWS (`full`/`aggregate`/`global`) per
+(dataset, method), each its own real, distinct leakage curve -- grouping without `view` would zigzag
+those together the same way. Every distinct `(method, view)` pair gets its own linestyle within a
+family's shared color.
 
-Five of the seven methods (M0/M1/M2/M3/M5) share family F1 and so share one color by `plotting.py`'s
-family-styling convention ("one line per artifact family") — distinguished from each other here by
-linestyle, so the family identity and the individual method are both legible.
+Both panels plot RAW values (real held-out test accuracy; real TPR@1%FPR), not the `acc_norm`/
+`leak_norm` columns `build_fig01_decoupling.py` also writes (per `03_RESULTS_SPEC.md`'s FIG01 schema
+request) -- those are a separate, display-only normalization-to-elapsed=0 view of the same data, and
+this figure has no normalized-value confidence interval to plot alongside them, so it plots the raw
+series instead.
 """
 from __future__ import annotations
 
@@ -38,16 +43,16 @@ def main() -> int:
         rows = list(csv.DictReader(f))
 
     datasets = sorted({r["dataset"] for r in rows})
-    by_dataset_method: dict = defaultdict(list)
+    by_dataset_key: dict = defaultdict(list)
     for r in rows:
-        by_dataset_method[(r["dataset"], r["method"])].append(r)
+        by_dataset_key[(r["dataset"], r["method"], r["view"])].append(r)
 
-    methods = sorted({r["method"] for r in rows})
-    linestyle_for_method: dict = {}
-    for method in methods:
-        family = Family(next(r["family"] for r in rows if r["method"] == method))
-        n_seen = sum(1 for m in linestyle_for_method.values() if m == family)
-        linestyle_for_method[method] = (family, _LINESTYLES[n_seen % len(_LINESTYLES)])
+    keys = sorted({(r["method"], r["view"]) for r in rows})
+    linestyle_for_key: dict = {}
+    for method, view in keys:
+        family = Family(next(r["family"] for r in rows if r["method"] == method and r["view"] == view))
+        n_seen = sum(1 for f, _ in linestyle_for_key.values() if f == family)
+        linestyle_for_key[(method, view)] = (family, _LINESTYLES[n_seen % len(_LINESTYLES)])
 
     fig, axes = plt.subplots(
         2, len(datasets), figsize=(plotting.column_width("double") * len(datasets) / 2, 5.6),
@@ -56,49 +61,51 @@ def main() -> int:
 
     for col, dataset in enumerate(datasets):
         ax_acc, ax_leak = axes[0][col], axes[1][col]
-        for method in methods:
-            method_rows = sorted(by_dataset_method[(dataset, method)], key=lambda r: int(r["elapsed"]))
-            if not method_rows:
+        for method, view in keys:
+            key_rows = sorted(by_dataset_key[(dataset, method, view)], key=lambda r: int(r["elapsed"]))
+            if not key_rows:
                 continue
-            family, linestyle = linestyle_for_method[method]
+            family, linestyle = linestyle_for_key[(method, view)]
             style = plotting.style_for(family)
-            elapsed = [int(r["elapsed"]) for r in method_rows]
+            elapsed = [int(r["elapsed"]) for r in key_rows]
+            view_suffix = f"/{view}" if view != "full" else ""
 
-            acc = [float(r["acc_mean"]) for r in method_rows]
-            acc_lo = [float(r["acc_ci_lo"]) for r in method_rows]
-            acc_hi = [float(r["acc_ci_hi"]) for r in method_rows]
+            acc = [float(r["acc_mean"]) for r in key_rows]
+            acc_lo = [float(r["acc_ci_lo"]) for r in key_rows]
+            acc_hi = [float(r["acc_ci_hi"]) for r in key_rows]
             ax_acc.plot(
                 elapsed, acc, color=style["color"], marker=style["marker"], linestyle=linestyle,
-                markersize=4, label=f"{method} ({style['label']})",
+                markersize=4, label=f"{method}{view_suffix} ({style['label']})",
             )
             plotting.ci_band(ax_acc, elapsed, acc_lo, acc_hi, color=style["color"])
 
-            tpr1 = [float(r["tpr1_mean"]) for r in method_rows]
-            tpr1_lo = [float(r["tpr1_ci_lo"]) for r in method_rows]
-            tpr1_hi = [float(r["tpr1_ci_hi"]) for r in method_rows]
+            tpr1 = [float(r["tpr1_mean"]) for r in key_rows]
+            tpr1_lo = [float(r["tpr1_ci_lo"]) for r in key_rows]
+            tpr1_hi = [float(r["tpr1_ci_hi"]) for r in key_rows]
             ax_leak.plot(
                 elapsed, tpr1, color=style["color"], marker=style["marker"], linestyle=linestyle, markersize=4
             )
             plotting.ci_band(ax_leak, elapsed, tpr1_lo, tpr1_hi, color=style["color"])
 
         ax_acc.set_title(dataset, fontsize=8)
-        ax_acc.axhline(1.0, color="0.7", linewidth=0.5, linestyle="--")
         ax_leak.axhline(0.01, color="0.7", linewidth=0.5, linestyle="--")
         ax_leak.set_xlabel("elapsed tasks ($T - k$)")
 
-    axes[0][0].set_ylabel("accuracy on task $k$\n(normalised to elapsed=0)")
+    axes[0][0].set_ylabel("real held-out test accuracy\non task $k$")
     axes[1][0].set_ylabel("A1 TPR@1%FPR\non task-$k$ data")
 
     handles, labels = axes[0][0].get_legend_handles_labels()
-    fig.legend(handles, labels, fontsize=6, loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.0))
-    fig.suptitle("FIG01 — Retention/leakage decoupling", fontsize=9)
-    fig.tight_layout(rect=(0, 0.10, 1, 0.95))
+    fig.legend(handles, labels, fontsize=5, loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.0))
+    fig.suptitle("FIG01 v2 — Retention/leakage decoupling", fontsize=9)
+    fig.tight_layout(rect=(0, 0.16, 1, 0.95))
     plotting.save(fig, "fig01_decoupling", out_dir=REPO_ROOT / "figs")
     print("wrote figs/fig01_decoupling.{pdf,png}")
-    # Paper caption (per plotting.py's convention: takeaway first, setting second, nothing else):
-    # "Accuracy on task k decays with elapsed time; membership leakage decays slower or not at all,
-    # for 6 of 7 methods on CIFAR-100 and most methods on CUB-200 (one real counter-example: M3 on
-    # CUB-200 shows the reverse -- accuracy shows no detectable decay while leakage does). 5 seeds."
+    # Paper caption (per plotting.py's convention: takeaway first, setting second, nothing else) --
+    # STALE, pre-fix wording removed 2026-09-23 (the "6 of 7 methods" / M3-CUB-200-reversal narrative
+    # was built on an invalid half-life extrapolation, see agents/OPEN_QUESTIONS.md's H2 entry and
+    # notes/2026-09-23_fx2_decoupling_ratio_post_fix.md). Write the real caption from
+    # results/decoupling_ratio.csv once FX2/FX3 finish producing the full post-fix numbers, not from
+    # memory of the pre-fix story.
     return 0
 
 

@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -N p3_job
+#PBS -q batch
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+
+# Generic job runner (08_FIX_PLAN.md §0.2): submit with `-v JOBFILE=/data/islamm/retention_leakage/
+# build/jobs/<name>.sh` -- avoids the comma-splitting problem `-v` has with multi-value job specs.
+# JOBFILE must be a self-contained bash script (its own module load / venv activate / cd / python
+# invocation) so this template stays generic across every FX step that just needs "run this one
+# command on a batch node instead of the login node."
+if [ -z "${JOBFILE:-}" ]; then
+  echo "run_job.pbs: JOBFILE not set" >&2
+  exit 1
+fi
+if [ ! -f "$JOBFILE" ]; then
+  echo "run_job.pbs: JOBFILE '$JOBFILE' does not exist" >&2
+  exit 1
+fi
+bash "$JOBFILE"

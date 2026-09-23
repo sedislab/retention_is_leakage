@@ -24,8 +24,9 @@ _NEIGHBOURING = {
         "task-epoch. Natural for FCL, and the unit under which parallel composition can be legal."
     ),
     Unit.CLIENT_BOUNDED: (
-        "Client-level, bounded horizon (U3): D and D' differ in all of one client's data across a "
-        "fixed horizon of T tasks. The standard cross-silo target."
+        "Client-level, bounded window (U3): D and D' differ in all of one client's data within some "
+        "fixed-width rolling window of `window` (default 3) consecutive tasks -- worst case over "
+        "every window start, not the whole horizon. The standard cross-silo target."
     ),
     Unit.CLIENT_LIFELONG: (
         "Client-level, unbounded / lifelong (U4): D and D' differ in all of one client's data across "
@@ -35,7 +36,9 @@ _NEIGHBOURING = {
     Unit.INDIVIDUAL: (
         "Individual / person-level under renewal (U5): D and D' differ in the data of one person, "
         "who may recur across several tasks of one client and possibly across clients, under a "
-        "renewal (churn) model of the population."
+        "renewal (churn) model of the population. Under this project's streams, each person "
+        "contributes exactly one example, so U5 == U1 exactly (`dp.accountant.account` routes both "
+        "to the same U1 computation; report U1 only, do not plot U5 separately)."
     ),
 }
 

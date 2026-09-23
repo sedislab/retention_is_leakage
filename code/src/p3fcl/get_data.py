@@ -379,20 +379,21 @@ CAMELYON17_ROOT = DATASETS_DIR / "camelyon17_wilds_raw"
 
 
 def fetch_camelyon17() -> dict:
-    from wilds import get_dataset
-
-    CAMELYON17_ROOT.mkdir(parents=True, exist_ok=True)
-    get_dataset(dataset="camelyon17", download=True, root_dir=str(CAMELYON17_ROOT))
-    existing = _load_manifest().get("camelyon17", {})
-    entry = {
-        "url_used": "wilds.get_dataset(camelyon17, download=True)",
-        "mirrors_tried": [],
-        "license": "CC0 (Camelyon17 / WILDS, de-identified histopathology patches)",
-        "bytes": _dir_size(CAMELYON17_ROOT),
-        "fetched_utc": existing.get("fetched_utc", _utc_now()),
-    }
-    _update_manifest("camelyon17", entry)
-    return entry
+    """`wilds.get_dataset(download=True)` downloads from `worksheets.codalab.org`, which times out on
+    every connection attempt from the Kodiak login node (verified: TCP connect to 20.232.203.197:443
+    times out after 10s; general outbound access is fine). Rather than let a caller sit on that hang,
+    fail fast and point at the working path: `code/scripts/build_camelyon17_from_hf_mirror.py`, which
+    fetches the same CC0 WILDS release from a Hugging Face community re-hosting
+    (`wltjr1007/Camelyon17-WILDS`, verified identical schema/per-center counts) and reconstructs the
+    on-disk layout `Camelyon17Dataset(download=False)` expects. See `data/MANIFEST.json`'s `camelyon17`
+    entry and `notes/2026-09-21_fig18_camelyon17.md` for the full story."""
+    raise RuntimeError(
+        "fetch_camelyon17(): the official wilds.get_dataset(download=True) path is blocked from "
+        "Kodiak (worksheets.codalab.org connection timeout) -- do not call this. Run "
+        "`python code/scripts/build_camelyon17_from_hf_mirror.py` followed by "
+        "`python code/scripts/build_camelyon17_from_hf_mirror.py --materialize-selected` instead; "
+        "see data/MANIFEST.json's camelyon17 entry for details."
+    )
 
 
 def prepare_camelyon17(subsample_target: int = 60000) -> dict:
@@ -408,6 +409,19 @@ def prepare_camelyon17(subsample_target: int = 60000) -> dict:
     metadata = ds.metadata_array.numpy()
     hospital_col = ds.metadata_fields.index("hospital")
     hospital = metadata[:, hospital_col]
+    # Wave V3 (08_FIX_PLAN.md's H13 fix, "matched-5-client redesign"): `slide` (one of the 3 fields
+    # `Camelyon17Dataset` actually exposes -- `metadata_fields == ['hospital', 'slide', 'y']`; the raw
+    # per-image `patient`/`node` columns exist in the underlying metadata.csv but are not surfaced
+    # through this API) is a genuine natural sub-unit within a hospital -- every patch from the same
+    # physical microscopy slide is one indivisible group, unlike a random Dirichlet client split which
+    # ignores this structure entirely. Recorded per sample so `streams.py` can partition a hospital's
+    # task-data into clients BY SLIDE (never splitting one slide's patches across two clients) as the
+    # "natural" arm of the redesigned FIG18 comparison, matched on client COUNT against a same-n_clients
+    # Dirichlet arm -- isolating "real structure vs. random split" from "how many clients," which is
+    # exactly the confound `agents/OPEN_QUESTIONS.md`'s H13 flagged in the original pilot (natural arm
+    # had 1 client, dirichlet arm had 10).
+    slide_col = ds.metadata_fields.index("slide")
+    slide = metadata[:, slide_col]
     n_total = len(y)
 
     r = rng_mod.seeded("get_data.prepare_camelyon17", SPLIT_SEED)
@@ -427,7 +441,8 @@ def prepare_camelyon17(subsample_target: int = 60000) -> dict:
     canary = _carve_canary(splits["ref"], seed=SPLIT_SEED)
 
     samples = [
-        {"id": int(gid), "wilds_index": int(gid), "label": int(y[gid]), "domain": int(hospital[gid])}
+        {"id": int(gid), "wilds_index": int(gid), "label": int(y[gid]), "domain": int(hospital[gid]),
+         "slide": int(slide[gid])}
         for gid in keep
     ]
 
@@ -437,6 +452,7 @@ def prepare_camelyon17(subsample_target: int = 60000) -> dict:
         "n_images": len(samples), "n_classes": 2, "class_names": ["normal", "tumor"],
         "samples": samples, "splits": {**splits, "canary": canary},
         "natural_partition_field": "domain",
+        "natural_client_field": "slide",
         "loader": "wilds:camelyon17", "wilds_root_dir": str(CAMELYON17_ROOT),
         "subsample_of": int(n_total), "subsample_target": subsample_target,
     }

@@ -2,6 +2,15 @@
 """Collects `runs/utility_baseline/*.json` (one per method x dataset x n_tasks x seed, written by
 `run_utility_baseline.py`) into the Gate P2 deliverable `results/tab05_utility_baselines.csv`.
 Tidy format per `03_RESULTS_SPEC.md`'s convention: one row per (method, dataset, n_tasks, seed).
+
+FX4g (`08_FIX_PLAN.md`): "regenerate ... results/tab05_utility_baselines.csv for 10 tasks. Add 20
+tasks only if time allows, and mark which." 2026-09-23: regenerated the mandatory 10-task
+cifar100/cub200/imagenet_r configs with post-fix method code (job 184034); the 20-task configs and
+Camelyon17 (t5) are still the ORIGINAL pre-fix cache from 2026-09-15 (20-task: optional per the plan,
+not done this pass; Camelyon17: needs Wave V3's matched-5-client redesign first). Both kinds of row
+stay in this ONE table (never silently drop data), each tagged by a `status` column
+(`post_fix_t10_2026-09-23` or `stale_pre_fix_2026-09-15`) -- this is the "mark which" the plan asks
+for. Anything reading this file for a headline number should filter to the `post_fix_t10` status.
 """
 from __future__ import annotations
 
@@ -20,8 +29,14 @@ OUT_CSV = REPO_ROOT / "results" / "tab05_utility_baselines.csv"
 
 FIELDS = [
     "method", "dataset", "n_tasks_requested", "n_tasks_actual", "seed",
-    "final_avg_acc", "bwt", "avg_incremental_acc", "n_ledger_records",
+    "final_avg_acc", "bwt", "avg_incremental_acc", "n_ledger_records", "status",
 ]
+
+
+def _status(rec: dict) -> str:
+    if rec["dataset"] != "camelyon17" and int(rec["n_tasks_requested"]) == 10:
+        return "post_fix_t10_2026-09-23"
+    return "stale_pre_fix_2026-09-15"
 
 
 def main() -> int:
@@ -33,7 +48,7 @@ def main() -> int:
     rows = []
     for f in files:
         rec = json.loads(f.read_text())
-        rows.append({k: rec[k] for k in FIELDS})
+        rows.append({**{k: rec[k] for k in FIELDS if k != "status"}, "status": _status(rec)})
 
     rows.sort(key=lambda r: (r["method"], r["dataset"], r["n_tasks_requested"], r["seed"]))
 

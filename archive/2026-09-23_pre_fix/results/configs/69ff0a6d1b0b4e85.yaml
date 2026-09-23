@@ -1,0 +1,10 @@
+dataset: camelyon17
+partitions:
+  dirichlet: 10
+  natural: 1
+purpose: FIG18 Camelyon17 real accuracy matrix, natural vs dirichlet partition
+seed: 0
+seeds:
+- 0
+- 1
+- 2

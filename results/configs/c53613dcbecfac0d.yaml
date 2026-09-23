@@ -1,0 +1,10 @@
+clip_C: 43.14116679260853
+dataset: cifar100
+eps: 4.0
+gamma: 1.0
+lambda: 100.0
+n_shadows: 1024
+p: 128
+purpose: "M9 audit shadow generation (08_FIX_PLAN.md \xA78)"
+seed: 0
+unit: U1

@@ -1,0 +1,9 @@
+beta: 0.02
+dataset: cifar100
+n_calib_seeds: 20
+n_clients: 50
+n_eval_seeds: 20
+n_tasks: 10
+purpose: A4 onset inference via CUSUM change-point detection (H4)
+seed: 0
+tolerance: 2

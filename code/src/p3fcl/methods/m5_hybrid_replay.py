@@ -12,6 +12,13 @@ contradicting H6 (F8 is hypothesized to NOT admit task-disjointness) and CLAUDE.
 ("under-reporting `touched` silently converts a false privacy claim into a 'proved' one"). The delta
 is released again now, with `touched` honestly including every exemplar id currently in the buffer
 that this round's training drew on — not just the ids newly added to it.
+
+**FX4d fix, 08_FIX_PLAN.md**: the buffer was keyed by class alone (`self._buffer[c]`), silently
+shared across every client — the same one-global-buffer bug diagnosed for M1 (R2). Rekeyed to
+`(client, class)`; a client's local training now reads only its own buffer. Unlike M1's buffer
+(private local state, never transmitted — removed from M1's ledger entirely), M5's buffer contents
+are an actual release (the whole point of this method, per its own module docstring above and H6) and
+stay in the ledger as an F8 record.
 """
 from __future__ import annotations
 
@@ -44,15 +51,17 @@ class HybridReplay(FCLMethod):
         self.lr = float(config.get("lr", 0.5))
         self.buffer_size_per_class = int(config.get("buffer_size_per_class", 5))
         self.W = np.zeros((self.d, self.n_classes))
-        self._buffer: dict = {}  # class -> list[(feature_vector, datum_id)]
+        self._buffer: dict = {}  # (client, class) -> list[(feature_vector, datum_id)]
         self._round = 0
 
     def rounds_per_task(self) -> int:
         return 1
 
-    def _buffer_arrays_and_ids(self):
+    def _client_buffer_arrays_and_ids(self, client: int):
         xs, ys, ids = [], [], []
-        for c, entries in self._buffer.items():
+        for (cl, c), entries in self._buffer.items():
+            if cl != client:
+                continue
             for feat, did in entries:
                 xs.append(feat)
                 ys.append(c)
@@ -77,14 +86,16 @@ class HybridReplay(FCLMethod):
     def fit_task(self, task_idx, X, y, ids, client_shards, rng) -> list:
         records = []
         deltas, weights = [], []
-        X_buf, y_buf, buf_ids = self._buffer_arrays_and_ids()
 
         for shard in client_shards:
             idx = np.array(shard.ids, dtype=int)
+            self.update_classes_seen(y[idx])
+            X_buf, y_buf, buf_ids = self._client_buffer_arrays_and_ids(shard.client)
             Wc = self._local_train(self.W, X[idx], y[idx], X_buf, y_buf)
             delta = Wc - self.W
             deltas.append(delta)
-            weights.append(len(idx))
+            weight = len(idx)
+            weights.append(weight)
 
             classes_here = sorted({int(c) for c in y[idx]})
             payload: dict = {}
@@ -93,7 +104,7 @@ class HybridReplay(FCLMethod):
                 class_idx = idx[y[idx] == c]
                 k = min(self.buffer_size_per_class, len(class_idx))
                 chosen = class_idx[rng.permutation(len(class_idx))[:k]]
-                self._buffer[c] = [(X[i].copy(), int(i)) for i in chosen]
+                self._buffer[(shard.client, c)] = [(X[i].copy(), int(i)) for i in chosen]
                 payload[f"feat_{c}"] = X[chosen].copy()
                 payload[f"ids_{c}"] = chosen.astype(np.int64)
                 new_touched.update(int(i) for i in chosen)
@@ -123,7 +134,7 @@ class HybridReplay(FCLMethod):
                     touched=delta_touched,
                     n_touched=len(delta_touched),
                     passes_over_data=self.local_epochs,
-                    meta={"local_epochs": self.local_epochs, "lr": self.lr},
+                    meta={"local_epochs": self.local_epochs, "lr": self.lr, "agg_weight": float(weight)},
                 )
             )
 
@@ -135,4 +146,4 @@ class HybridReplay(FCLMethod):
         return records
 
     def predict(self, X) -> np.ndarray:
-        return np.argmax(X @ self.W, axis=1)
+        return np.argmax(self.mask_unseen_logits(X @ self.W), axis=1)

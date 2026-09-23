@@ -1,0 +1,16 @@
+calibration_frac: 0.8
+dataset: imagenet_r
+e_max: 6
+k_set:
+- 0
+- 1
+- 2
+- 3
+method: m4_proto
+n_calib: 819
+n_eval: 205
+n_shadows: 1024
+purpose: FX2 per-task LiRA, fixed-k population (H2/H3/H11)
+seed: 0
+stream_seed: 1
+view: aggregate

@@ -1,0 +1,32 @@
+#!/bin/bash
+#PBS -N camelyon17_reprep2
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=00:20:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/build/logs/fx_camelyon17_reprep2.log
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=2
+export MKL_NUM_THREADS=2
+export OPENBLAS_NUM_THREADS=2
+python3 -c "
+import sys, json
+sys.path.insert(0, 'src')
+from p3fcl.get_data import prepare_camelyon17
+entry = prepare_camelyon17(subsample_target=5000)
+print(entry)
+
+idx = json.load(open('/data/islamm/retention_leakage/datasets/camelyon17/index.json'))
+print('n_images:', idx['n_images'])
+new_ids = {s['id'] for s in idx['samples']}
+expected = set(json.load(open('/tmp/camelyon17_expected_ids.json')))
+missing = expected - new_ids
+print('expected ids referenced by existing shadow stores:', len(expected))
+print('missing from regenerated index:', len(missing))
+if missing:
+    print('SAMPLE OF MISSING IDS:', sorted(missing)[:20])
+    sys.exit(1)
+print('VERIFICATION PASSED: every existing shadow-store target id is present in the regenerated index')
+"
