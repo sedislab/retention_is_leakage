@@ -50,12 +50,25 @@ def main() -> int:
                 by_eps[eps].append(r)
             if not by_eps:
                 continue
-            eps_sorted = sorted(by_eps)
-            x = [(_INF_SENTINEL if np.isinf(e) else e) for e in eps_sorted]
-            y = [float(by_eps[e][0]["final_acc_mean"]) for e in eps_sorted]
-            plotting.ci_band(ax,x,[float(by_eps[e][0]["ci_lo"]) for e in eps_sorted],[float(by_eps[e][0]["ci_hi"]) for e in eps_sorted],color=_UNIT_COLOR[unit])
-            ax.plot(x, y, color=_UNIT_COLOR[unit], marker=_UNIT_MARKER[unit], markersize=4,
-                     linewidth=1.2, label=f"{plotting.display_name('m9_contractive', short=True)} ({unit})")
+            finite_eps = sorted(e for e in by_eps if np.isfinite(e))
+            label = f"{plotting.display_name('m9_contractive', short=True)} ({unit})"
+            if finite_eps:
+                y = [float(by_eps[e][0]["final_acc_mean"]) for e in finite_eps]
+                plotting.ci_band(ax, finite_eps, [float(by_eps[e][0]["ci_lo"]) for e in finite_eps], [float(by_eps[e][0]["ci_hi"]) for e in finite_eps], color=_UNIT_COLOR[unit])
+                ax.plot(finite_eps, y, color=_UNIT_COLOR[unit], marker=_UNIT_MARKER[unit], markersize=4,
+                         linewidth=1.2, label=label)
+                label = None  # legend entry already added by the finite line
+            inf_rows = by_eps.get(float("inf"))
+            if inf_rows:
+                y_inf = float(inf_rows[0]["final_acc_mean"])
+                lo_inf = float(inf_rows[0]["ci_lo"])
+                hi_inf = float(inf_rows[0]["ci_hi"])
+                ax.errorbar(
+                    [_INF_SENTINEL], [y_inf],
+                    yerr=[[y_inf - lo_inf], [hi_inf - y_inf]],
+                    color=_UNIT_COLOR[unit], marker=_UNIT_MARKER[unit], markersize=4,
+                    linestyle="none", capsize=2, label=label,
+                )
 
         for method in ("m0_fedavg", "m8_analytic"):
             ref_rows = [r for r in ds_rows if r["method"] == method]
@@ -69,7 +82,17 @@ def main() -> int:
         ax.set_xlabel(r"$\varepsilon$", fontsize=8)
         ax.set_title(dataset, fontsize=8)
         ax.tick_params(labelsize=7)
-        ax.axvline(_INF_SENTINEL * 0.6, color="#cccccc", linewidth=0.5, linestyle=":")
+        # Axis break: eps=inf is not a continuation of the finite-eps curve (no connecting segment
+        # is drawn to it above), so mark the gap with the standard double-diagonal break convention
+        # instead of a plain separator line.
+        break_x = _INF_SENTINEL * 0.55
+        dx, dy = break_x * 0.05, 0.03
+        trans = ax.get_xaxis_transform()
+        for offset in (-break_x * 0.06, break_x * 0.06):
+            ax.plot(
+                [break_x + offset - dx, break_x + offset + dx], [-dy, dy],
+                transform=trans, color="k", linewidth=0.8, clip_on=False, solid_capstyle="butt", zorder=5,
+            )
         ax.text(_INF_SENTINEL, 0.02, "inf", fontsize=7, ha="center", transform=ax.get_xaxis_transform())
 
     axes[0].set_ylabel("final average accuracy", fontsize=8)

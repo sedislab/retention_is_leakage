@@ -35,11 +35,13 @@ def main() -> int:
 
     for col, dataset in enumerate(datasets):
         ax = axes[col]
+        all_n: set = set()
         for rq, style in _REF_QUALITY_STYLE.items():
             rq_rows = sorted(by_dataset_rq.get((dataset, rq), []), key=lambda r: int(r["n_per_class"]))
             if not rq_rows:
                 continue
             n = [int(r["n_per_class"]) for r in rq_rows]
+            all_n.update(n)
             mean_cos = [float(r["median_cos"]) for r in rq_rows]
             lo = [float(r["ci_lo"]) for r in rq_rows]
             hi = [float(r["ci_hi"]) for r in rq_rows]
@@ -48,6 +50,8 @@ def main() -> int:
             plotting.ci_band(ax, n, lo, hi, color=style["color"])
         ax.axhline(0.8, color="0.7", linewidth=0.5, linestyle="--")
         ax.set_xscale("log", base=2)
+        ax.set_xticks(sorted(all_n))
+        ax.set_xticklabels([str(v) for v in sorted(all_n)])
         ax.set_ylim(0, 1.05)
         ax.set_title(dataset, fontsize=8)
         ax.set_xlabel("n per class", fontsize=7)

@@ -1,0 +1,29 @@
+#!/bin/bash
+#PBS -N fx9_prefreeze
+#PBS -l select=1:ncpus=1:mem=8gb
+#PBS -l walltime=24:00:00
+#PBS -q batch
+#PBS -o build/logs/
+#PBS -e build/logs/
+#PBS -j oe
+
+# Pre-freeze pass (human request, 2026-09-24): FIG02 label-collision fix, FIG08 axis-break fix,
+# FIG13 2^0 tick fix, and the new results/buffer_coverage.csv (M1/M5 exemplar buffer coverage).
+# No new shadow generation or attack runs -- buffer_coverage.csv re-runs one already-configured
+# real (non-shadow) federation per (method, dataset, seed), same as run_utility_baseline.py.
+
+set -euo pipefail
+cd /data/islamm/retention_leakage
+module load python/3.10.4 >/dev/null 2>&1
+source envs/p3fcl/bin/activate
+export PYTHONPATH=code/src:code/scripts:${PYTHONPATH:-}
+
+python code/scripts/run_buffer_coverage.py
+cd code/scripts
+python build_paper_numbers.py
+cd ../..
+
+make figures
+make verify
+
+echo "FX9 PRE-FREEZE PASS COMPLETE"

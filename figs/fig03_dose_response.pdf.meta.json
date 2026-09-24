@@ -3,14 +3,14 @@
   "config_hash": "dbc0dd098e7d8cd3",
   "seed": 0,
   "hostname": "n038",
-  "pbs_jobid": "184422.bcm11",
+  "pbs_jobid": "184680.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-24T04:08:29.512676+00:00",
+  "utc_start": "2026-09-24T17:49:38.057077+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/figs/fig03_dose_response.pdf",
-  "utc_end": "2026-09-24T04:08:30.991203+00:00",
-  "wall_seconds": 1.478527
+  "utc_end": "2026-09-24T17:49:41.073229+00:00",
+  "wall_seconds": 3.016152
 }

@@ -5,6 +5,7 @@ import csv
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+from adjustText import adjust_text
 from p3fcl import plotting
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,7 @@ def main():
     fig, axes = plt.subplots(1, 3, figsize=(5.5, 2.4))
     for ax, ds in zip(axes, ["cifar100", "cub200", "imagenet_r"]):
         rr = [r for r in rows if r["dataset"] == ds]
+        texts = []
         for leak in [r for r in rr if r["quantity"] == "leak_tpr1"]:
             acc = next(
                 r
@@ -54,17 +56,13 @@ def main():
                 markersize=3,
                 linestyle="none",
             )
-            ax.annotate(
-                plotting.display_name(leak["method"], short=True),
-                (x, y),
-                xytext=(2, 2),
-                textcoords="offset points",
-                fontsize=7,
-            )
+            texts.append(ax.text(x, y, plotting.display_name(leak["method"], short=True), fontsize=7))
         ax.axhline(1, color=".5", linestyle="--", linewidth=0.6)
         ax.axline((0, 0), slope=1, color=".6", linestyle=":", linewidth=0.6)
         ax.set_title(ds)
         ax.set_xlabel("accuracy A(6)")
+        if texts:
+            adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle="-", color="0.5", lw=0.5))
     axes[0].set_ylabel("leakage L(6)")
     fig.text(
         0.5,

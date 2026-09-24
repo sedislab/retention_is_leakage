@@ -101,6 +101,11 @@ SOURCES = [
     ("results/fig05_eps_of_T.csv", ["dataset", "method", "unit", "eps0", "T"], [("eps", "", "")]),
     ("results/fig17_seed_variance.csv", ["dataset", "method", "seed", "metric"], [("value", "", "")]),
     ("results/a6_property_inference.csv", ["elapsed"], [("balanced_accuracy", "", "")]),
+    (
+        "results/buffer_coverage.csv",
+        ["method", "dataset", "seed"],
+        [("coverage_fraction", "", ""), ("mean_samples_per_class_per_client", "", "")],
+    ),
 ]
 
 

@@ -241,3 +241,33 @@ Directionally consistent with the pre-FX9-9 (blank-CI) numbers already on record
 **FX9 schedule status: FX9-0 through FX9-10 all DONE, acceptance-verified, numbers printed above and in the log.** No open item, no blank cell, no known bug from the B1-B5/I1-I4 table left unaddressed. Remaining schedule item is **#11, Freeze** (soft target2026-09-25 06:00CDT, hard freeze12:00CDT) -- we are >30h ahead of the soft target.
 
 **Per CLAUDE.md's autonomy contract Rule#1 ("A phase gate passes... ask Proceed to Pn+1? Then wait"), stopping here to report to the human rather than unilaterally starting the freeze procedure or any new phase.** No `[LOCKED]`decisions were relitigated; no hypothesis was set to`CONFIRMED`(the agent is not permitted to, and did not).
+
+---
+
+## PRE-FREEZE PASS (human request,2026-09-24) -- DONE, job184680 exit=0, verified against disk
+
+Human asked for a small pre-freeze pass (PBS only, no new experiments), due2026-09-25 11:00CDT:
+
+1. **FIG02 label collisions** -- `analysis/fig02_halflife.py` now collects one`ax.text`per point per panel and calls`adjustText.adjust_text(...)`once per panel (with thin leader lines back to the point) instead of a fixed`(2,2)`-point offset annotate. `adjustText==1.4.0`installed into`envs/p3fcl`(also added to`env/requirements.txt`) -- **note**: an earlier`pip install adjustText`accidentally targeted the system python3.9 (`~/.local/lib/python3.9/site-packages`) before I re-ran it correctly inside the activated venv; harmless (separate Python version, never touched by PBS jobs) but left as clutter in the account's home dir, not cleaned up.
+2. **FIG08 eps=inf** -- `analysis/fig08_pareto.py` no longer draws one continuous line through the sentinel eps=inf x-position; the finite-eps points (line+CI band) and the inf point (isolated errorbar marker, no connecting line) are now two separate draw calls, with a standard double-diagonal axis-break glyph (blended data/axes-fraction transform) marking the gap instead of the old dotted separator line.
+3. **FIG13 2^0 tick** -- `analysis/fig13_gram_inversion.py` now sets explicit`xticks`per panel from that panel's own actual`n_per_class`values (CIFAR:1,2,4,8,16,32,64,128; CUB:1,2,4,8,16), so n=1 (2^0) always renders regardless of matplotlib's default log2 locator choice.
+4. **`results/buffer_coverage.csv`(new,18 rows)** -- M1/M5's private per-client exemplar buffer (budget=10/class/client, confirmed the real FX9 gate value for every dataset via`results/fx9_gate.csv`) coverage, computed by re-running ONE real (non-shadow) federation per(method,dataset,seed) -- the same`sim.run`call`run_utility_baseline.py`already uses for TAB05 -- and reading the method's own`_buffer`state after the run (class-incremental streams write each(client,class)key at most once, so the final state is exactly the union of everything ever buffered; not a new experiment, a direct measurement of an already-fixed config). New script`code/scripts/run_buffer_coverage.py`. Logic smoke-tested against synthetic data with the real method classes before the real PBS run.
+
+**Coverage numbers (fraction of training examples that ever enter some client's buffer; mean samples actually landing per(client,class)buffer entry, budget=10):**
+| dataset | seed | coverage_fraction | n_ever_buffered/n_training | mean_samples_per_class_per_client | n_client_class_buffers |
+|---|---|---|---|---|---|
+| cifar100 | 0 | 0.189925 | 7597/40000 | 8.204 | 926 |
+| cifar100 | 1 | 0.185625 | 7425/40000 | 8.010 | 927 |
+| cifar100 | 2 | 0.188775 | 7551/40000 | 8.217 | 919 |
+| cub200 | 0 | 0.964157 | 4815/4994 | 3.452 | 1395 |
+| cub200 | 1 | 0.969163 | 4840/4994 | 3.435 | 1409 |
+| cub200 | 2 | 0.955547 | 4772/4994 | 3.411 | 1399 |
+| imagenet_r | 0 | 0.460030 | 11003/23918 | 6.427 | 1712 |
+| imagenet_r | 1 | 0.450916 | 10785/23918 | 6.359 | 1696 |
+| imagenet_r | 2 | 0.457605 | 10945/23918 | 6.453 | 1696 |
+
+Identical between M1 and M5 (same stream/budget/class-incremental partition drive the same per-(client,class) shard sizes and the same`k=min(budget,len(class_idx))`, even though the two methods draw from different RNG streams so the specific buffered ids differ -- only the counts, which these statistics depend on, coincide; not a bug). **CUB-200's ~96% coverage is the standout finding**: with only~25 images/class and budget=10, most per-client-class shards are smaller than the budget, so nearly the entire dataset ends up in some buffer at some point -- worth flagging in the paper's privacy discussion, not just a footnote.
+
+**Rebuild chain**: `run_buffer_coverage.py`->`build_paper_numbers.py`(added a`buffer_coverage.csv`SOURCES entry,`coverage_fraction`+`mean_samples_per_class_per_client`, no CI columns since these are single deterministic per-seed measurements; rows2603->2639, exactly+36=18 combos x2 fields)->`make figures`(all17 figures regenerated, figure count unchanged, only FIG02/FIG08/FIG13 visually changed)->`make verify`**PASS**(`check_fx9_consistency.py`: paper_numbers_exact_source_cells=2639, figure_pdfs=17, stale_figures=0; provenance verify: both checks OK). Independently re-verified row counts and figure mtimes against disk, not just the job log.
+
+No`[LOCKED]`decision touched, no hypothesis status changed, no shadow/attack data regenerated. Ready for the freeze whenever the human confirms.

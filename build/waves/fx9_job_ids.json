@@ -18,5 +18,6 @@
   "fx9_preserved": "184431[].bcm11",
   "preserved_original": "184371[].bcm11",
   "bootstrap_benchmark": "184430.bcm11",
-  "fx9_wave_rebuild": "184455.bcm11"
+  "fx9_wave_rebuild": "184455.bcm11",
+  "fx9_prefreeze_pass": "184680.bcm11"
 }

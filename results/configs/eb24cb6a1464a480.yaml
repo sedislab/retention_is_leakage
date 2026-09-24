@@ -1,0 +1,24 @@
+operation: exact source-cell transcription
+phase: FX9
+sources:
+- results/fx9_m9_gap_summary.csv
+- results/fx9_gate_comparison.csv
+- results/fx9_dose_summary.csv
+- results/retention_curves.csv
+- results/fig02_retention_at_horizon.csv
+- results/fig02_halflife.csv
+- results/decoupling_ratio.csv
+- results/m9_certified.csv
+- results/m9_audit_summary.csv
+- results/fx9_gate_summary.csv
+- results/fx9_utility_summary.csv
+- results/fx9_gate.csv
+- results/tab07_reproduction_gap.csv
+- tables/tab08_dp_utility.csv
+- results/fig13_gram_inversion_summary.csv
+- results/fig18_natural_federation.csv
+- results/fig03_dose_response.csv
+- results/fig05_eps_of_T.csv
+- results/fig17_seed_variance.csv
+- results/a6_property_inference.csv
+- results/buffer_coverage.csv

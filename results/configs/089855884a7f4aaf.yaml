@@ -1,0 +1,13 @@
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+methods:
+- m1_glfc
+- m5_hybrid_replay
+phase: pre-freeze
+purpose: 'M1/M5 private exemplar buffer coverage (CLAUDE.md non-negotiable #2)'
+seeds:
+- 0
+- 1
+- 2

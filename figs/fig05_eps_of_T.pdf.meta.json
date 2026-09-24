@@ -3,14 +3,14 @@
   "config_hash": "9203024018e84612",
   "seed": 0,
   "hostname": "n038",
-  "pbs_jobid": "184422.bcm11",
+  "pbs_jobid": "184680.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-24T04:08:37.036243+00:00",
+  "utc_start": "2026-09-24T17:49:47.934446+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/figs/fig05_eps_of_T.pdf",
-  "utc_end": "2026-09-24T04:08:38.548474+00:00",
-  "wall_seconds": 1.512231
+  "utc_end": "2026-09-24T17:49:49.453767+00:00",
+  "wall_seconds": 1.519321
 }
