@@ -1,16 +1,16 @@
 {
-  "source_hash": "64b683b888d1865991266fb3749c5636ebad9a2775425890293378954e446715",
-  "config_hash": "9cf00cfd619891bc",
+  "source_hash": "2f6e789f727290fa7afec427a48156577d8bb54b4c71f065e7c75dc82ecfde75",
+  "config_hash": "ebc6f4c64c2ccfaf",
   "seed": 0,
-  "hostname": "kodiak",
-  "pbs_jobid": null,
+  "hostname": "n024",
+  "pbs_jobid": "184366.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-22T02:40:47.697892+00:00",
+  "utc_start": "2026-09-24T01:31:35.504299+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/fig13_gram_inversion_summary.csv",
-  "utc_end": "2026-09-22T02:40:53.307287+00:00",
-  "wall_seconds": 5.609395
+  "utc_end": "2026-09-24T01:31:36.879611+00:00",
+  "wall_seconds": 1.375312
 }

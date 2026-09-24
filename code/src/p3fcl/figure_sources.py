@@ -1,0 +1,20 @@
+"""CSV inputs of current paper figures, used by rendering provenance and make verify."""
+FIGURE_SOURCES = {
+    'fig01_decoupling': ['retention_curves.csv'],
+    'fig02_halflife': ['retention_curves.csv'],
+    'fig02_retention_at_horizon': ['retention_curves.csv'],
+    'fig03_dose_response': ['fx9_dose_summary.csv'],
+    'fig04_semantic_vs_individual': ['fx9_dose_summary.csv'],
+    'fig05_eps_of_T': ['fig05_eps_of_T.csv'],
+    'fig08_pareto': ['fig08_pareto.csv'],
+    'fig10_m9_audit': ['fig10_m9_audit.csv'],
+    'fig11_secure_agg': ['fx3_views_summary.csv'],
+    'fig11_secure_agg_appendix_cub200': ['fx3_views_summary.csv'],
+    'fig11_secure_agg_appendix_imagenet_r': ['fx3_views_summary.csv'],
+    'fig13_gram_inversion': ['fig13_gram_inversion_summary.csv'],
+    'fig16_roc': ['fig16_roc.csv'],
+    'fig17_seed_variance': ['fig17_seed_variance.csv'],
+    'fig18_natural_federation': ['fig18_natural_federation.csv'],
+    'fig19_retention_vs_release': ['retention_curves.csv'],
+    'fig_a6_property_inference': ['a6_property_inference.csv'],
+}

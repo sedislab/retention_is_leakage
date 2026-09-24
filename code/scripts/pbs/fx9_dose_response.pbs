@@ -1,0 +1,52 @@
+#!/bin/bash
+#PBS -N fx9_dose
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=04:00:00
+#PBS -J 0-287%16
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/build/logs/
+set -euo pipefail
+cd /data/islamm/retention_leakage/code
+
+module purge
+module load python/3.10.4
+source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+
+# FX8 (08_FIX_PLAN.md §10, C2 dose-response rerun): manifest-driven array, mirrors shadow_wave.pbs
+# exactly. Walltime is a placeholder until the pilot (a handful of subjobs) measures a real per-chunk
+# time against the manifest's own timing test (M5 4.29s/shadow, M2 8.39s/shadow at level=50 on 8
+# workers -- the worst case, lower levels should be cheaper); a 64-shadow chunk should cost well under
+# an hour even at the worst-case rate (M2: 64*8.39s ~= 9 min), so 1h is generous headroom, not a
+# measured requirement -- widen it if the pilot says otherwise.
+MANIFEST=/data/islamm/retention_leakage/build/waves/fx9_dose_response.tsv
+IDX="${PBS_ARRAY_INDEX:-0}"
+LINE=$(( IDX + 2 ))
+ROW=$(sed -n "${LINE}p" "$MANIFEST")
+if [ -z "$ROW" ]; then
+  echo "fx8_dose_response.pbs: no manifest row at index $IDX (line $LINE) in $MANIFEST" >&2
+  exit 1
+fi
+IFS=$'\t' read -r DATASET METHOD KNOB_NAME KNOB_VALUE SEED START COUNT OUT_DIR OVERRIDE <<< "$ROW"
+
+SET_ARGS=(--set stream.base_seed="${SEED}")
+while IFS=$'\t' read -r K V; do
+  SET_ARGS+=(--set "method_config_override.${K}=${V}")
+done < <(python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+for k, v in d.items():
+    print(f'{k}\t{json.dumps(v)}')
+" "$OVERRIDE")
+
+mkdir -p "$OUT_DIR"
+python -m p3fcl.cli shadows \
+  --config configs/attack_lira.yaml \
+  --dataset "$DATASET" --method "$METHOD" \
+  --start "$START" --count "$COUNT" \
+  --workers 8 \
+  "${SET_ARGS[@]}" \
+  --out "$OUT_DIR"

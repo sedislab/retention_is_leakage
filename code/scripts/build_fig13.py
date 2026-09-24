@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""FIG13 — Gram inversion n-curve (claim C1's supporting evidence, H5). Aggregates the already-computed
-per-trial reconstruction records in `results/fig13_gram_inversion.csv` (5 trials per
-(dataset, n_per_class, ref_quality), each trial a different randomly-sampled class -- no new
-reconstruction runs here) into a mean + CI curve, since the raw file has per-trial rows, not the
-mean/CI columns a plot script can read directly (CLAUDE.md non-negotiable #3: plot scripts do no
-computation, so that aggregation step lives here, not in `analysis/fig13_gram_inversion.py`).
-Writes `results/fig13_gram_inversion_summary.csv`.
-"""
+"""FX9 FIG13: 25 independent class draws per feasible cell; median of per-trial mean cosine, with percentile bootstrap CI. No anisotropy panel or causal anisotropy claim."""
 from __future__ import annotations
 
 import csv
@@ -17,7 +10,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
-from p3fcl import metrics, provenance  # noqa: E402
+import numpy as np  # noqa: E402
+from p3fcl import provenance  # noqa: E402
+from p3fcl import rng as rng_mod  # noqa: E402
 
 
 def main() -> int:
@@ -32,24 +27,29 @@ def main() -> int:
 
     out_rows = []
     for (dataset, backbone, n_per_class, ref_quality), values in groups.items():
-        mean, lo, hi = metrics.seed_ci(values)
+        assert len(values) == 25, (dataset, n_per_class, ref_quality, len(values))
+        rng = rng_mod.seeded(f"fx9.fig13::{dataset}::{n_per_class}::{ref_quality}", 0)
+        values = np.asarray(values)
+        draws = rng.choice(values, size=(2000, len(values)), replace=True)
+        mean = float(np.median(values))
+        lo, hi = np.percentile(np.median(draws, axis=1), [2.5, 97.5])
         out_rows.append({
             "dataset": dataset, "backbone": backbone, "n_per_class": n_per_class,
-            "ref_quality": ref_quality, "mean_cos": mean, "ci_lo": lo, "ci_hi": hi,
+            "ref_quality": ref_quality, "median_cos": mean, "ci_lo": lo, "ci_hi": hi,
             "n_trials": len(values),
         })
     out_rows.sort(key=lambda r: (r["dataset"], r["ref_quality"], r["n_per_class"]))
 
     out_csv = REPO_ROOT / "results" / "fig13_gram_inversion_summary.csv"
-    fieldnames = ["dataset", "backbone", "n_per_class", "ref_quality", "mean_cos", "ci_lo", "ci_hi", "n_trials"]
+    fieldnames = ["dataset", "backbone", "n_per_class", "ref_quality", "median_cos", "ci_lo", "ci_hi", "n_trials"]
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         w.writerows(out_rows)
-    print(f"wrote {len(out_rows)} rows to {out_csv}")
+    print(f"FX9-8 FIG13 ACCEPT cells={len(out_rows)} trials_per_cell=25 min_trials={min(r['n_trials'] for r in out_rows)} statistic=median bootstrap_replicates=2000")
 
     config = {
-        "seed": 0, "purpose": "FIG13 Gram-inversion curve: aggregate per-trial records to mean+CI (H5)",
+        "seed": 0, "purpose": "FIG13 Gram-inversion curve: median of per-trial mean cosine + bootstrap CI (H5)",
         "n_input_rows": len(rows), "n_groups": len(groups),
     }
     manifest = provenance.run_manifest(config, seed=0)

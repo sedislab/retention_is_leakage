@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from p3fcl.paths import LEGACY_SHADOW_ROOT, SHADOW_ROOT
 
 
 def _load_module(name: str, rel_path: str):
@@ -90,7 +91,7 @@ def test_rebuild_and_verify_targets_raises_on_mismatch(m, tmp_path, monkeypatch)
     features.save_cache(tmp_path / "features", "synthdset", m.BACKBONE, "train", X, X, y, ids)
     monkeypatch.setattr(m, "REPO_ROOT", tmp_path)
 
-    shadow_dir = tmp_path / "shadows"
+    shadow_dir = tmp_path / LEGACY_SHADOW_ROOT
     shadow_dir.mkdir()
     # A fabricated shadow file whose target_ids can never match any real build_targets() output for
     # this stream (out-of-range ids).
@@ -125,7 +126,7 @@ def test_rebuild_and_verify_targets_uses_the_stream_seed_not_the_configs_static_
     real_stream = streams.build_stream(y, ids, n_tasks=2, n_clients=2, beta=1.0, seed=stream_seed)
     real_targets = m.build_targets(real_stream, targets_per_shard=2, base_seed=stream_seed)
 
-    shadow_dir = tmp_path / "shadows"
+    shadow_dir = tmp_path / LEGACY_SHADOW_ROOT
     shadow_dir.mkdir()
     np.savez(
         shadow_dir / "shadow_000000.npz", shadow_id=0,
@@ -139,12 +140,12 @@ def test_rebuild_and_verify_targets_uses_the_stream_seed_not_the_configs_static_
 
 def test_shadow_dir_prefers_legacy_layout_then_falls_back_to_v2(m, tmp_path, monkeypatch):
     monkeypatch.setattr(m, "REPO_ROOT", tmp_path)
-    legacy = tmp_path / "shadows" / "cifar100" / "m0_fedavg"
+    legacy = tmp_path / LEGACY_SHADOW_ROOT / "cifar100" / "m0_fedavg"
     legacy.mkdir(parents=True)
     assert m._shadow_dir("cifar100", "m0_fedavg", 0) == legacy
 
     # seed>0 with no legacy dir present at all -> falls back to shadows_v2
-    v2_expected = tmp_path / "shadows_v2" / "cifar100" / "m1_glfc" / "seed1"
+    v2_expected = tmp_path / SHADOW_ROOT["m1_glfc"] / "cifar100" / "m1_glfc" / "seed1"
     assert m._shadow_dir("cifar100", "m1_glfc", 1) == v2_expected
 
 
@@ -155,9 +156,15 @@ def test_shadow_dir_never_uses_the_stale_legacy_store_for_non_m0_methods(m, tmp_
     m8_analytic/etc. on the real cluster, alongside their real `shadows_v2/.../seed0` data -- which
     would have silently scored the stale store instead of wave V2's fixed one."""
     monkeypatch.setattr(m, "REPO_ROOT", tmp_path)
-    stale_legacy = tmp_path / "shadows" / "cifar100" / "m4_proto"
+    stale_legacy = tmp_path / LEGACY_SHADOW_ROOT / "cifar100" / "m4_proto"
     stale_legacy.mkdir(parents=True)
-    v2_dir = tmp_path / "shadows_v2" / "cifar100" / "m4_proto" / "seed0"
+    v2_dir = tmp_path / SHADOW_ROOT["m4_proto"] / "cifar100" / "m4_proto" / "seed0"
     v2_dir.mkdir(parents=True)
 
     assert m._shadow_dir("cifar100", "m4_proto", 0) == v2_dir
+
+
+def test_m4_equal_views_share_calibration_split(m):
+    assert m._calibration_key("cifar100", "m4_proto", "global") == m._calibration_key("cifar100", "m4_proto", "aggregate")
+    assert m._calibration_key("cifar100", "m8_analytic", "global").endswith("::global")
+    assert m._calibration_key("cifar100", "m0_fedavg", "full").endswith("::full")

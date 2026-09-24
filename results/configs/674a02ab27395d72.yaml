@@ -1,0 +1,9 @@
+dataset: cub200
+hypothesis: H2
+method: m2_target
+phase: FX9-5
+seeds:
+- 0
+- 1
+- 2
+view: full

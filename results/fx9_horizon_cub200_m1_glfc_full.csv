@@ -1,0 +1,2 @@
+dataset,method,family,view,acc_norm,acc_norm_ci_lo,acc_norm_ci_hi,leak_norm,leak_norm_ci_lo,leak_norm_ci_hi,n_seeds,n_accuracy_seeds,n_leakage_seeds,n_replicates
+cub200,m1_glfc,F1,full,1.489116111433845,1.3119637520633414,1.7373000517591446,3.9713956929146805,2.9249795131721736,5.857632358463389,3,5,3,2000

@@ -1,0 +1,5 @@
+dataset,method,family,view,quantity,ablation,halflife,halflife_int,status,ci_lo,ci_hi,horizon_E,base_value,base_ci_lo,floor,halflife_expfit,r2
+cifar100,m4_proto,F2,full,leak_tpr1,trajectory,6.0,,censored,6.0,6.0,6,0.3434382945433209,0.31391409951634075,0.01,,
+cifar100,m4_proto,F2,full,leak_auc,trajectory,6.0,,censored,6.0,6.0,6,0.8826480909783073,0.8731303790231386,0.5,,
+cifar100,m4_proto,F2,full,leak_tpr1,last_round,6.0,,censored,6.0,6.0,6,0.3434382945433209,0.31391409951634075,0.01,,
+cifar100,m4_proto,F2,full,leak_auc,last_round,6.0,,censored,6.0,6.0,6,0.8826480909783073,0.8731303790231386,0.5,,

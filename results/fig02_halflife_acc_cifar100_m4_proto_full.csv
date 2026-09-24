@@ -1,0 +1,2 @@
+dataset,method,family,view,quantity,ablation,halflife,halflife_int,status,ci_lo,ci_hi,horizon_E,base_value,base_ci_lo,floor,halflife_expfit,r2
+cifar100,m4_proto,F2,full,acc,n/a,6.0,,censored,,,6,0.8166166666666665,0.8017320833333332,per-task a0(t)=1/classes_seen,,

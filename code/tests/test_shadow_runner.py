@@ -67,12 +67,12 @@ def test_method_config_override_reaches_the_method(tmp_path):
     ledger_default = sim.run(HybridReplay(cfg_default), X, y, stream, seed=0)["ledger"]
     ledger_zero = sim.run(HybridReplay(cfg_zero), X, y, stream, seed=0)["ledger"]
 
-    # With buffer_size_per_class=0, round-1 EXEMPLAR touched sets from round 0 cannot appear in round
+    # With buffer_size_per_class=0, round-0 raw IDs cannot appear in round
     # 1's MODEL_DELTA touched set (no buffer to replay from); with a real buffer they can.
     def _round1_delta_touches_round0_exemplars(ledger):
         exemplar_ids = frozenset().union(
-            *(r.touched for r in ledger if r.family == Family.EXEMPLAR and r.round == 0)
-        ) if any(r.family == Family.EXEMPLAR and r.round == 0 for r in ledger) else frozenset()
+            *(r.touched for r in ledger if r.family == Family.MODEL_DELTA and r.round == 0)
+        )
         delta_round1 = [r for r in ledger if r.family == Family.MODEL_DELTA and r.round == 1]
         return any(exemplar_ids & r.touched for r in delta_round1)
 
@@ -158,7 +158,7 @@ def test_run_shadow_range_m9_without_pca_basis_fails_loudly(tmp_path):
     dataset (`ref` split) access can fit a real one. A caller that forgets to supply it via
     `method_config_override` must get a loud failure from `ContractiveDPAnalytic.__init__`, not a
     silently-wrong default (08_FIX_PLAN.md's M9 audit design notes, subtlety 3)."""
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     with pytest.raises(KeyError):
         shadow_runner.run_shadow_range(
             dataset="synthdset", method="m9_contractive", start=0, count=1, workers=1,
@@ -171,7 +171,7 @@ def test_run_shadow_range_m9_with_pca_basis_override(tmp_path):
     synthetic cache's feature dim) must reach the worker, and GRAM `global`/`aggregate` scoring must
     not crash on the dimension mismatch a raw (unprojected) feature would cause against M9's
     p x p running state."""
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     P = np.eye(6)[:, :3]
     config = {**_CONFIG, "method_config_override": {"pca_basis": P, "gamma": 1.0, "eps": float("inf")}}
     result = shadow_runner.run_shadow_range(
@@ -196,7 +196,7 @@ def test_run_shadow_range_m9_gives_each_shadow_independent_dp_noise(tmp_path):
     is one fixed dict shared across the whole `run_shadow_range` call -- without `_run_one_shadow`
     defaulting `noise_seed` to the shadow's own id, every shadow would draw the exact same noise, which
     would make the audit measure a mechanism that provides no real differential privacy at all."""
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     P = np.eye(6)[:, :3]
     config = {
         **_CONFIG,
@@ -275,7 +275,7 @@ def test_reconstruct_gram_global_gamma_sums_within_round_before_decaying():
     "method", ["m4_proto", "m8_analytic", "m0_fedavg", "m1_glfc", "m2_target", "m3_fot", "m5_hybrid_replay"]
 )
 def test_run_shadow_range_writes_and_reports_correctly(tmp_path, method):
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     result = shadow_runner.run_shadow_range(
         dataset="synthdset", method=method, start=0, count=10, workers=2, out_dir=out_dir, config=_CONFIG
     )
@@ -288,7 +288,7 @@ def test_run_shadow_range_writes_and_reports_correctly(tmp_path, method):
 
 
 def test_run_shadow_range_is_resumable(tmp_path):
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     shadow_runner.run_shadow_range(
         dataset="synthdset", method="m4_proto", start=0, count=5, workers=1, out_dir=out_dir, config=_CONFIG
     )
@@ -335,7 +335,7 @@ def test_concurrent_array_tasks_do_not_race_on_targets_json(tmp_path):
     `os.replace` deleted the file out from under the other's, raising `FileNotFoundError`. Simulates
     that by running several `run_shadow_range` calls against the same `out_dir` as separate processes,
     each covering a disjoint shadow-index range -- exactly what concurrent array tasks do."""
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     ctx = mp.get_context("fork")
     queue = ctx.Queue()
     procs = [
@@ -357,7 +357,7 @@ def test_concurrent_array_tasks_do_not_race_on_targets_json(tmp_path):
 
 
 def test_different_shadow_ids_give_different_in_out_membership(tmp_path):
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     shadow_runner.run_shadow_range(
         dataset="synthdset", method="m4_proto", start=0, count=8, workers=2, out_dir=out_dir, config=_CONFIG
     )
@@ -378,7 +378,7 @@ def test_out_shadows_have_real_between_shadow_noise(tmp_path):
     value -- a noise-free null that made LiRA's AUC a foregone conclusion rather than a real measure of
     leakage. With population-level resampling, other same-class members also vary shadow-to-shadow, so
     a real target's OUT scores must show genuine spread, not a point mass."""
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     n_shadows = 40
     shadow_runner.run_shadow_range(
         dataset="synthdset", method="m4_proto", start=0, count=n_shadows, workers=2,
@@ -409,7 +409,7 @@ def test_m0_trajectory_and_last_round_are_not_identical(tmp_path):
     differ from just its last value, and the two LiRA scores should differ too."""
     from p3fcl.attacks.lira import lira_score
 
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     n_shadows = 30
     shadow_runner.run_shadow_range(
         dataset="synthdset", method="m0_fedavg", start=0, count=n_shadows, workers=2,
@@ -454,7 +454,7 @@ def test_prototype_score_separates_in_from_out_on_a_small_shard(tmp_path):
     small, the released class mean should sit measurably closer to the target's own feature when the
     target is IN than when it is OUT (the leave-one-out mean-shift, `04_METHODS_AND_ATTACKS.md`'s A3
     discussion of the same effect applied here to a single, non-differenced release)."""
-    out_dir = tmp_path / "shadows"
+    out_dir = tmp_path / "store"
     n_shadows = 60
     shadow_runner.run_shadow_range(
         dataset="synthdset", method="m4_proto", start=0, count=n_shadows, workers=2,

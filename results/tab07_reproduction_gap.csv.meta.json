@@ -1,16 +1,16 @@
 {
-  "source_hash": "1c52e450c2e1f845cdccafcb0c0d2d2af3127bdc792c04523b197f7623e49903",
+  "source_hash": "66586bbc2f9e4b6db046c00a1d41d67c1272a47a3d819d3543cd5633e1c17c7b",
   "config_hash": "46e36a79de5b282c",
   "seed": 0,
   "hostname": "n029",
-  "pbs_jobid": "184323.bcm11",
+  "pbs_jobid": "184360.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-23T22:26:21.824590+00:00",
+  "utc_start": "2026-09-24T01:34:15.046930+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/tab07_reproduction_gap.csv",
-  "utc_end": "2026-09-23T22:26:23.313813+00:00",
-  "wall_seconds": 1.489223
+  "utc_end": "2026-09-24T01:34:16.488095+00:00",
+  "wall_seconds": 1.441165
 }

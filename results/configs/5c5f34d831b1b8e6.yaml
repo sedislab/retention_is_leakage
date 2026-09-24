@@ -1,0 +1,8 @@
+figure: fig18_natural_federation
+height_inches: 5.2
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- fig18_natural_federation.csv
+- method_descriptions.csv
+width_inches: 3.4

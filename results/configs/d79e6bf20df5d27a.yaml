@@ -1,0 +1,9 @@
+dataset: imagenet_r
+hypothesis: H2
+method: m8_analytic
+phase: FX9-1
+seeds:
+- 0
+- 1
+- 2
+view: full

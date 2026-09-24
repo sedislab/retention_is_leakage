@@ -1,0 +1,8 @@
+figure: fig08_pareto
+height_inches: 2.6
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- fig08_pareto.csv
+- method_descriptions.csv
+width_inches: 5.5

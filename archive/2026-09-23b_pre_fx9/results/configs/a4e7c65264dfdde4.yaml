@@ -1,0 +1,9 @@
+dataset: camelyon17
+method: m0_fedavg
+n_clients: 5
+purpose: FIG18 v2 matched-5-client report (H13 fix)
+seed: 0
+seeds:
+- 0
+- 1
+- 2

@@ -1,0 +1,2 @@
+dataset,method,family,view,acc_norm,acc_norm_ci_lo,acc_norm_ci_hi,leak_norm,leak_norm_ci_lo,leak_norm_ci_hi,n_seeds,n_accuracy_seeds,n_leakage_seeds,n_replicates
+cifar100,m8_analytic,F5,aggregate,0.9776183828580293,0.9627079152207668,0.9907521544965817,1.0,1.0,1.0,3,5,3,2000

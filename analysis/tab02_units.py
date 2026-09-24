@@ -69,6 +69,9 @@ def main() -> int:
     (out_dir / "tab02_units.tex").write_text("\n".join(tex_lines) + "\n")
 
     print(f"wrote {len(rows)} rows to {csv_path} and tab02_units.tex")
+    from p3fcl import provenance
+    manifest = provenance.run_manifest(dict(phase="FX9-10", table="tab02_units", source="code definitions"), seed=0)
+    provenance.finalize(manifest, [out_dir/"tab02_units.csv", out_dir/"tab02_units.tex"])
     return 0
 
 

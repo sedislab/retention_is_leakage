@@ -1,0 +1,24 @@
+phase: FX9
+reused_shared_rows: 0
+sources:
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m0_fedavg.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m1_glfc.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m2_target.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m3_fot.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m4_proto.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m5_hybrid_replay.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cifar100_m8_analytic.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m0_fedavg.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m1_glfc.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m2_target.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m3_fot.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m4_proto.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m5_hybrid_replay.csv
+- /data/islamm/retention_leakage/results/fig16_roc_cub200_m8_analytic.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m0_fedavg.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m1_glfc.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m2_target.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m3_fot.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m4_proto.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m5_hybrid_replay.csv
+- /data/islamm/retention_leakage/results/fig16_roc_imagenet_r_m8_analytic.csv

@@ -15,6 +15,7 @@ M0 has 5 seeds (0-4, its pre-existing gold-standard budget); every other method 
 budget) -- both satisfy CLAUDE.md non-negotiable #4's >=3-seed floor, missing seeds are skipped, not
 padded or inferred.
 """
+
 from __future__ import annotations
 
 import csv
@@ -24,7 +25,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
+from fx9_io import current  # noqa: E402
 from p3fcl import provenance  # noqa: E402
+from p3fcl.experiment import CHANGED_METHODS  # noqa: E402
 
 DATASETS = ["cifar100", "cub200", "imagenet_r"]
 METHODS = ["m0_fedavg", "m1_glfc", "m2_target", "m3_fot", "m4_proto", "m5_hybrid_replay", "m8_analytic"]
@@ -45,19 +48,24 @@ def main() -> int:
     out_rows = []
     for dataset in DATASETS:
         for method in METHODS:
-            for seed in SEEDS:
+            for seed in SEEDS if method == "m0_fedavg" else [0, 1, 2]:
                 csv_path = REPO_ROOT / "results" / f"a1_lira_pertask_{dataset}_{method}_seed{seed}_full.csv"
-                if not csv_path.exists():
-                    print(f"missing {csv_path}, skipping")
-                    continue
+                assert csv_path.exists(), csv_path
+                if method in CHANGED_METHODS:
+                    current(csv_path)
                 value = _tpr_at_elapsed0(csv_path)
-                if value is None:
-                    print(f"no pooled elapsed=0 trajectory row in {csv_path}, skipping")
-                    continue
-                out_rows.append({
-                    "dataset": dataset, "method": method, "metric": METRIC, "seed": seed, "value": value,
-                })
+                assert value is not None, csv_path
+                out_rows.append(
+                    {
+                        "dataset": dataset,
+                        "method": method,
+                        "metric": METRIC,
+                        "seed": seed,
+                        "value": value,
+                    }
+                )
 
+    assert len(out_rows) == 69
     out_csv = REPO_ROOT / "results" / "fig17_seed_variance.csv"
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["dataset", "method", "metric", "seed", "value"])
@@ -66,8 +74,11 @@ def main() -> int:
     print(f"wrote {len(out_rows)} rows to {out_csv}")
 
     config = {
-        "seed": 0, "purpose": "FIG17 seed-variance panel: per-seed TPR@1%FPR at elapsed=0",
-        "datasets": DATASETS, "methods": METHODS, "n_seeds": len(SEEDS),
+        "seed": 0,
+        "purpose": "FIG17 seed-variance panel: per-seed TPR@1%FPR at elapsed=0",
+        "datasets": DATASETS,
+        "methods": METHODS,
+        "n_seeds": len(SEEDS),
     }
     manifest = provenance.run_manifest(config, seed=0)
     provenance.finalize(manifest, [out_csv])

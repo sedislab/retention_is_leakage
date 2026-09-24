@@ -76,6 +76,8 @@ def finalize(manifest: dict, outputs, results_dir=None) -> None:
     """Writes `<output>.meta.json` beside each output and appends one line to
     `results/RUN_LOG.jsonl`."""
     results_dir = Path(results_dir) if results_dir else RESULTS_DIR
+    if results_dir.resolve() == (REPO_ROOT / "results").resolve() and not os.environ.get("PBS_JOBID"):
+        raise RuntimeError("Production result provenance must be written through PBS")
     results_dir.mkdir(parents=True, exist_ok=True)
     configs_dir = results_dir / "configs"
     configs_dir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,40 @@
+#!/bin/bash
+#PBS -N fx9_wave_rebuild
+#PBS -l select=1:ncpus=1:mem=8gb
+#PBS -l walltime=24:00:00
+#PBS -q batch
+#PBS -o build/logs/
+#PBS -e build/logs/
+#PBS -j oe
+
+# FX9-1/FX9-8/FX9-9: rebuild the shared summaries and figures that depend on Wave V3
+# (now complete) but NOT on the dose-response array (184411, still running). Runs the
+# non-dose slice of schedule item 9 ("rebuild all summaries; all figures and tables")
+# in parallel with dose, per CLAUDE.md's "never idle / overlap phases" rule.
+
+set -euo pipefail
+cd /data/islamm/retention_leakage
+module load python/3.10.4 >/dev/null 2>&1
+source envs/p3fcl/bin/activate
+export PYTHONPATH=code/src:code/scripts:${PYTHONPATH:-}
+
+cd code/scripts
+python merge_fx2_summary.py
+python build_retention_curves.py
+python merge_fx9_ratios.py
+python build_fig01_decoupling.py
+python build_fx3_views_summary.py
+python build_fx9_roc.py
+python build_fig17.py
+cd ../..
+
+python analysis/fig01_decoupling.py
+python analysis/fig02_halflife.py
+python analysis/fig19_retention_vs_release.py
+python analysis/tab03_leakage.py
+python analysis/tab04_halflife.py
+python analysis/fig11_secure_agg.py
+python analysis/fig16_roc.py
+python analysis/fig17_seed_variance.py
+
+echo "FX9 WAVE REBUILD (non-dose slice) COMPLETE"

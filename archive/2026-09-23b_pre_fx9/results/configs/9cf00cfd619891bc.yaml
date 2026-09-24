@@ -1,0 +1,4 @@
+n_groups: 39
+n_input_rows: 195
+purpose: 'FIG13 Gram-inversion curve: aggregate per-trial records to mean+CI (H5)'
+seed: 0

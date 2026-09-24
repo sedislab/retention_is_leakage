@@ -1,0 +1,11 @@
+dataset: cub200
+hypothesis: H2
+method: m5_hybrid_replay
+phase: FX9-1
+seeds:
+- 0
+- 1
+- 2
+- 3
+- 4
+view: full

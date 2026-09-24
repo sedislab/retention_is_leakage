@@ -1,0 +1,3 @@
+dataset: cub200
+purpose: 'FX4f lag diagnostic: pre- vs post-fix per-task diagonal accuracy'
+seed: 0

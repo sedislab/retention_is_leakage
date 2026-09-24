@@ -22,13 +22,16 @@ by the FX8 manifest-driven PBS array, `code/scripts/pbs/fx8_dose_response.pbs`).
 which pairs one `ci_lo`/`ci_hi` with `tpr1` as the headline metric; `tpr01`'s own CI is not part of
 the target schema but is computed anyway and available in this CSV for the appendix).
 """
+
 from __future__ import annotations
 
 import csv
+import os
 import sys
 from pathlib import Path
 
 import yaml
+from p3fcl.paths import SHADOW_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
@@ -46,7 +49,7 @@ SEEDS = [0, 1, 2]
 
 
 def _shadow_dir(method: str, knob_name: str, level: int, seed: int) -> Path:
-    return REPO_ROOT / "shadows_v2" / DATASET / method / f"dose_{knob_name}_{level}" / f"seed{seed}"
+    return REPO_ROOT / SHADOW_ROOT[method] / DATASET / method / f"dose_{knob_name}_{level}" / f"seed{seed}"
 
 
 def main() -> int:
@@ -54,10 +57,15 @@ def main() -> int:
         attack_cfg = yaml.safe_load(f)
     calib_frac = float(attack_cfg["shadow"]["calibration_frac"])
 
+    combos = [(m, level, seed) for m in KNOBS for level in LEVELS for seed in SEEDS]
+    selected = combos[int(os.environ["PBS_ARRAY_INDEX"])]
+    manifest = provenance.run_manifest(dict(phase="FX9-6", hypothesis="H2", combo=selected), seed=selected[2])
     rows = []
     for method, knob_name in KNOBS.items():
         for level in LEVELS:
             for seed in SEEDS:
+                if (method, level, seed) != selected:
+                    continue
                 shadow_dir = _shadow_dir(method, knob_name, level, seed)
                 if not shadow_dir.exists() or not any(shadow_dir.glob("shadow_*.npz")):
                     print(f"(skipping {method} {knob_name}={level} seed={seed}: {shadow_dir} not found)")
@@ -65,6 +73,7 @@ def main() -> int:
 
                 store = run_lira.load_shadow_store(shadow_dir)
                 n_shadows = len(store["shadow_ids"])
+                assert n_shadows == 512, (method, level, seed, n_shadows)
                 targets = _rebuild_and_verify_targets(DATASET, seed, shadow_dir, attack_cfg)
                 idx_by_k: dict = {}
                 for j, t in enumerate(targets):
@@ -84,38 +93,53 @@ def main() -> int:
                 n_rounds = store["n_rounds"]
 
                 scores_arr, labels_arr, n_t = _pooled_scores_labels(
-                    traj_eval, in_out_eval, idx_by_k, K_SET, E_MAX, n_rounds,
+                    traj_eval,
+                    in_out_eval,
+                    idx_by_k,
+                    K_SET,
+                    E_MAX,
+                    n_rounds,
                 )
                 if scores_arr is None:
-                    print(f"(skipping {method} {knob_name}={level} seed={seed}: no usable pooled scores at e={E_MAX})")
+                    print(
+                        f"(skipping {method} {knob_name}={level} seed={seed}: no usable pooled scores at e={E_MAX})"
+                    )
                     continue
 
                 report = metrics.membership_report(scores_arr, labels_arr)
-                rows.append({
-                    "dataset": DATASET, "method": method, "knob_name": knob_name, "knob_value": level,
-                    "seed": seed, "tpr1": report["tpr_at_1pct_fpr"], "tpr01": report["tpr_at_0.1pct_fpr"],
-                    "ci_lo": report["tpr_at_1pct_fpr_ci_lo"], "ci_hi": report["tpr_at_1pct_fpr_ci_hi"],
-                    "auc": report["auc"], "n_targets": n_t,
-                })
-                print(f"{method} {knob_name}={level} seed={seed}: elapsed={E_MAX} tpr1={report['tpr_at_1pct_fpr']:.4f} "
-                      f"auc={report['auc']:.4f} n_targets={n_t}")
+                rows.append(
+                    {
+                        "dataset": DATASET,
+                        "method": method,
+                        "knob_name": knob_name,
+                        "knob_value": level,
+                        "seed": seed,
+                        "tpr1": report["tpr_at_1pct_fpr"],
+                        "tpr01": report["tpr_at_0.1pct_fpr"],
+                        "ci_lo": report["tpr_at_1pct_fpr_ci_lo"],
+                        "ci_hi": report["tpr_at_1pct_fpr_ci_hi"],
+                        "auc": report["auc"],
+                        "n_targets": n_t,
+                    }
+                )
+                print(
+                    f"{method} {knob_name}={level} seed={seed}: elapsed={E_MAX} tpr1={report['tpr_at_1pct_fpr']:.4f} "
+                    f"auc={report['auc']:.4f} n_targets={n_t}"
+                )
 
-    if not rows:
-        print("no (method, level, seed) combos had complete data -- nothing written")
+    if len(rows) != 1:
+        print("incomplete FX9 dose-response scoring -- nothing written")
         return 1
 
-    out_csv = REPO_ROOT / "results" / "dose_response_lira.csv"
+    assert len(rows) == 1
+    method, level, seed = selected
+    out_csv = REPO_ROOT / "results" / f"dose_response_lira_{method}_{level}_seed{seed}.csv"
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
         w.writerows(rows)
     print(f"wrote {len(rows)} rows to {out_csv}")
 
-    config = {
-        "seed": 0, "purpose": f"FX8 dose-response leakage, pooled K={K_SET} at elapsed={E_MAX} (claim C2, H2)",
-        "dataset": DATASET, "knobs": KNOBS, "levels": LEVELS, "seeds": SEEDS,
-    }
-    manifest = provenance.run_manifest(config, seed=0)
     provenance.finalize(manifest, [out_csv])
     return 0
 

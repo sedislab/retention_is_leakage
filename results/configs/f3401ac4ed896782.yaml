@@ -1,0 +1,13 @@
+dataset: imagenet_r
+method: M2
+method_config:
+  feature_dim: 768
+  local_epochs: 30
+  lr: 0.1
+  n_classes: 200
+  n_synthetic_per_class: 20
+  replay_ratio: 1.0
+  replay_weight: 0.5
+n_tasks: 10
+phase: FX9-4
+seed: 1

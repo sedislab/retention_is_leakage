@@ -1,5 +1,5 @@
 dataset,method,family,view,quantity,ablation,halflife,halflife_int,status,ci_lo,ci_hi,horizon_E,base_value,base_ci_lo,floor,halflife_expfit,r2
-cifar100,m1_glfc,F1,full,leak_tpr1,trajectory,6.0,,censored,6.0,6.0,6,0.030235363150345546,0.024975430487241598,0.01,,
-cifar100,m1_glfc,F1,full,leak_auc,trajectory,6.0,,censored,6.0,6.0,6,0.560898565648009,0.55256488482556,0.5,,
-cifar100,m1_glfc,F1,full,leak_tpr1,last_round,6.0,,censored,6.0,6.0,6,0.030235363150345546,0.024975430487241598,0.01,,
-cifar100,m1_glfc,F1,full,leak_auc,last_round,6.0,,censored,6.0,6.0,6,0.560898565648009,0.55256488482556,0.5,,
+cifar100,m1_glfc,F1,full,leak_tpr1,trajectory,6.0,,censored,,,6,0.027399269787455993,0.02346391987101756,0.01,,
+cifar100,m1_glfc,F1,full,leak_auc,trajectory,6.0,,censored,,,6,0.5552391660939108,0.5484027290623479,0.5,,
+cifar100,m1_glfc,F1,full,leak_tpr1,last_round,6.0,,censored,,,6,0.027399269787455993,0.02346391987101756,0.01,,
+cifar100,m1_glfc,F1,full,leak_auc,last_round,6.0,,censored,,,6,0.5552391660939108,0.5484027290623479,0.5,,

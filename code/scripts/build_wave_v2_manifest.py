@@ -22,6 +22,8 @@ import json
 import sys
 from pathlib import Path
 
+from p3fcl.paths import V2_SHADOW_ROOT
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 METHODS = ["m1_glfc", "m2_target", "m3_fot", "m5_hybrid_replay", "m4_proto", "m8_analytic"]
@@ -67,7 +69,7 @@ def main() -> int:
         for method in METHODS:
             override = gate_overrides.get((dataset, method), {})
             for seed in SEEDS:
-                out_dir = REPO_ROOT / "shadows_v2" / dataset / method / f"seed{seed}"
+                out_dir = REPO_ROOT / V2_SHADOW_ROOT / dataset / method / f"seed{seed}"
                 for start in range(0, N_SHADOWS, CHUNK):
                     rows.append({
                         "dataset": dataset, "method": method, "seed": seed,

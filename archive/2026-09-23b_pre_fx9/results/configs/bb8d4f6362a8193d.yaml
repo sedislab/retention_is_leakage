@@ -1,0 +1,10 @@
+clip_C: 5.0
+dataset: synthdset
+eps: .inf
+gamma: 1.0
+lambda: 0.1
+n_shadows: 12
+p: 4
+purpose: "M9 audit shadow generation (08_FIX_PLAN.md \xA78)"
+seed: 0
+unit: U1

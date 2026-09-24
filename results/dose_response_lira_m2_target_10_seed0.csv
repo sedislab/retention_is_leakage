@@ -1,0 +1,2 @@
+dataset,method,knob_name,knob_value,seed,tpr1,tpr01,ci_lo,ci_hi,auc,n_targets
+cifar100,m2_target,n_synthetic_per_class,10,0,0.040478290698814076,0.01323140252866804,0.03673692493923241,0.044484727622435785,0.615033992073298,200

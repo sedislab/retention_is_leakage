@@ -1,0 +1,8 @@
+figure: fig04_semantic_vs_individual
+height_inches: 2.8
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- fx9_dose_summary.csv
+- method_descriptions.csv
+width_inches: 5.5

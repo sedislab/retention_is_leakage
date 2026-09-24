@@ -1,0 +1,11 @@
+dataset: imagenet_r
+hypothesis: H2
+method: m3_fot
+phase: FX9-1
+seeds:
+- 0
+- 1
+- 2
+- 3
+- 4
+view: full

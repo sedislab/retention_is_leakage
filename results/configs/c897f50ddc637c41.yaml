@@ -1,0 +1,11 @@
+dataset: imagenet_r
+hypothesis: H2
+methods:
+- m0_fedavg
+phase: FX9-4
+seeds:
+- 0
+- 1
+- 2
+- 3
+- 4

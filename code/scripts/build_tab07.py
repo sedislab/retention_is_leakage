@@ -137,7 +137,7 @@ def main() -> int:
                 "our_reimpl_acc_mean": round(our_mean, 4) if our_mean is not None else None,
                 "our_reimpl_acc_std": round(our_std, 4) if our_std is not None else None,
                 "our_reimpl_n_seeds": int(our_n),
-                "our_protocol": "CIFAR-100, 10 class-incremental tasks, frozen ViT-B/16 features, 10 clients, Dirichlet beta=0.5",
+                "our_protocol": "CIFAR-100, 10 class-incremental tasks, raw frozen ViT-B/16 features, one round/task, FX9 gate configs, 10 clients, Dirichlet beta=0.5",
                 "published_acc": pub["published_acc"],
                 "published_protocol": pub["protocol"],
                 "source_paper": pub["source_paper"],

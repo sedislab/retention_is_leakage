@@ -1,16 +1,16 @@
 {
-  "source_hash": "fab2e48b30d4b05c9c3e385017f0fca9c2922553e763c5a0e3779a3b7484faca",
-  "config_hash": "d0590ebda4dda412",
+  "source_hash": "31831aaac4b18dd4058d4b2a531a8986c632e82bfe0a29a3c72f11608c5e1496",
+  "config_hash": "fe3ee06f4d32b3b2",
   "seed": 0,
-  "hostname": "n029",
-  "pbs_jobid": "184121.bcm11",
+  "hostname": "n038",
+  "pbs_jobid": "184422.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-23T15:36:33.544542+00:00",
+  "utc_start": "2026-09-24T04:07:57.202320+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/fig16_roc.csv",
-  "utc_end": "2026-09-23T15:36:37.894604+00:00",
-  "wall_seconds": 4.350062
+  "utc_end": "2026-09-24T04:07:57.224666+00:00",
+  "wall_seconds": 0.022346
 }

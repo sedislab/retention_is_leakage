@@ -24,7 +24,7 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 from p3fcl import provenance  # noqa: E402
 
-RUNS_DIR = REPO_ROOT / "runs" / "utility_baseline"
+RUNS_DIR = REPO_ROOT / "runs" / "fx9_utility_baseline"
 OUT_CSV = REPO_ROOT / "results" / "tab05_utility_baselines.csv"
 
 FIELDS = [
@@ -34,9 +34,9 @@ FIELDS = [
 
 
 def _status(rec: dict) -> str:
-    if rec["dataset"] != "camelyon17" and int(rec["n_tasks_requested"]) == 10:
-        return "post_fix_t10_2026-09-23"
-    return "stale_pre_fix_2026-09-15"
+    if rec.get("phase") != "FX9":
+        raise ValueError("refusing stale utility record")
+    return "FX9_raw_t10"
 
 
 def main() -> int:
@@ -48,6 +48,8 @@ def main() -> int:
     rows = []
     for f in files:
         rec = json.loads(f.read_text())
+        if rec["dataset"] == "camelyon17" or int(rec["n_tasks_requested"]) != 10:
+            continue
         rows.append({**{k: rec[k] for k in FIELDS if k != "status"}, "status": _status(rec)})
 
     rows.sort(key=lambda r: (r["method"], r["dataset"], r["n_tasks_requested"], r["seed"]))
@@ -60,9 +62,9 @@ def main() -> int:
 
     print(f"wrote {len(rows)} rows to {OUT_CSV}")
 
-    expected = 126
+    expected = 105
     if len(rows) != expected:
-        print(f"WARNING: expected {expected} rows (7 methods x 6 dataset/n_tasks configs x 3 seeds), "
+        print(f"WARNING: expected {expected} rows (7 methods x 3 datasets x 5 seeds), "
               f"got {len(rows)} — sweep may be incomplete.")
 
     config = {"seed": 0, "purpose": "TAB05 utility baseline collection"}

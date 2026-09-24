@@ -1,0 +1,8 @@
+figure: fig_a6_property_inference
+height_inches: 3.0
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- a6_property_inference.csv
+- method_descriptions.csv
+width_inches: 3.4

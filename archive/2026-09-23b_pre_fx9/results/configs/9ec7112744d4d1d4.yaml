@@ -1,0 +1,4 @@
+dataset: cifar100
+method: M0
+n_tasks: 20
+seed: 2

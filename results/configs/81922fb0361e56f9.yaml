@@ -1,0 +1,13 @@
+dataset: cifar100
+delta: 1.0e-05
+hypothesis: H1
+method: m0_fedavg
+method_config:
+  feature_dim: 768
+  local_epochs: 30
+  lr: 0.5
+  n_classes: 100
+n_tasks: 10
+phase: FX9-7
+sigma: 2.0
+window: 3

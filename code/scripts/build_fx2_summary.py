@@ -31,7 +31,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
-from p3fcl import metrics  # noqa: E402
+from p3fcl import bootstrap_metrics, metrics, provenance  # noqa: E402
 from p3fcl.halflife import (  # noqa: E402
     half_life,
     has_signal,
@@ -123,19 +123,19 @@ def _replicate_all_metrics(resampled_seed_data: list) -> dict:
             continue
         for key, val in (
             ("auc", metrics.roc_auc(scores, labels)),
-            ("tpr1", metrics.tpr_at_fpr(scores, labels, 0.01)),
-            ("tpr01", metrics.tpr_at_fpr(scores, labels, 0.001)),
+            ("tpr1", bootstrap_metrics.tpr_at_fpr(scores, labels, 0.01)),
+            ("tpr01", bootstrap_metrics.tpr_at_fpr(scores, labels, 0.001)),
         ):
             out[key][e] = None if np.isnan(val) else float(val)
     return out
 
 
-def build_summary(dataset: str, method: str, family: str, view: str, seeds: list) -> tuple:
+def build_summary(dataset: str, method: str, family: str, view: str, seeds: list, curve_rows=None, ablations=("trajectory", "last_round")) -> tuple:
     """Returns `(fixedk_summary_rows, halflife_rows)` for every ablation."""
     npz_by_seed = {s: _load_seed_npz(dataset, method, s, view) for s in seeds}
 
     fixedk_rows, halflife_rows = [], []
-    for ablation in ("trajectory", "last_round"):
+    for ablation in ablations:
         all_seed_records = [_seed_arrays(npz_by_seed[s], ablation) for s in seeds]
 
         point_by_e = {e: _point_report_at_e(all_seed_records, e) for e in range(E_MAX + 1)}
@@ -170,6 +170,24 @@ def build_summary(dataset: str, method: str, family: str, view: str, seeds: list
                 "n_seeds": len(seeds), "n_shadows": "n/a (per-seed, see a1_lira_pertask_*)",
             })
 
+        if curve_rows is not None and ablation == "trajectory":
+            for quantity, metric_key, report_key in (
+                ("leak_tpr1", "tpr1", "tpr_at_1pct_fpr"), ("leak_auc", "auc", "auc"),
+            ):
+                floor = leak_floor(metric_key)
+                base = point_by_e[0][report_key] - floor
+                for e, report in point_by_e.items():
+                    raw_ci = _ci_for(metric_key, e)
+                    vals = [(r[metric_key][e] - floor) / (r[metric_key][0] - floor)
+                            for r in replicates if r[metric_key][e] is not None
+                            and r[metric_key][0] is not None and r[metric_key][0] > floor]
+                    norm_ci = np.percentile(vals, [2.5, 97.5]) if vals else [None, None]
+                    curve_rows.append(dict(dataset=dataset, method=method, family=family, view=view,
+                                           quantity=quantity, elapsed=e, raw=report[report_key],
+                                           raw_ci_lo=raw_ci["ci_lo"], raw_ci_hi=raw_ci["ci_hi"],
+                                           norm=(report[report_key]-floor)/base if base > 0 else None,
+                                           norm_ci_lo=norm_ci[0], norm_ci_hi=norm_ci[1], n_seeds=len(seeds)))
+
         # Half-life, primary quantity = TPR@1%FPR (CLAUDE.md non-negotiable #5: TPR@1%FPR/0.1%FPR are
         # primary, never AUC alone) -- also report leak_auc as a secondary half-life for completeness.
         for quantity, metric_key, report_key in (
@@ -192,6 +210,7 @@ def build_summary(dataset: str, method: str, family: str, view: str, seeds: list
                     hl = half_life(normalize(values_by_e, floor), E=E_MAX)
 
                     hl_replicates = []
+                    n_right_censored = 0
                     for r in replicates:
                         vals = r[metric_key]
                         if any(vals[e] is None for e in range(E_MAX + 1)):
@@ -200,8 +219,10 @@ def build_summary(dataset: str, method: str, family: str, view: str, seeds: list
                             norm = normalize(vals, floor)
                         except ValueError:
                             continue
-                        hl_replicates.append(half_life(norm, E=E_MAX)["halflife"])
-                    n_censored = len(replicates) - len(hl_replicates)
+                        draw_h = half_life(norm, E=E_MAX)
+                        n_right_censored += int(draw_h["status"] == "censored")
+                        hl_replicates.append(draw_h["halflife"])
+                    n_censored = n_right_censored + len(replicates) - len(hl_replicates)
                     if n_censored > len(replicates) / 2 or not hl_replicates:
                         hl_ci_lo = hl_ci_hi = None
                     else:
@@ -227,7 +248,10 @@ def main() -> int:
     view = sys.argv[4] if len(sys.argv) > 4 else "full"
     seeds = [int(s) for s in sys.argv[5:]] if len(sys.argv) > 5 else [0, 1, 2, 3, 4]
 
-    fixedk_rows, halflife_rows = build_summary(dataset, method, family, view, seeds)
+    manifest = provenance.run_manifest(dict(phase="FX9-5", hypothesis="H2", dataset=dataset,
+                                           method=method, view=view, seeds=seeds), seed=0)
+    curve_rows = []
+    fixedk_rows, halflife_rows = build_summary(dataset, method, family, view, seeds, curve_rows=curve_rows)
 
     # Per-combo output files, not the shared `a1_lira_fixedk_summary.csv`/`fig02_halflife.csv`:
     # `code/scripts/pbs/fx2_leak_wave.pbs` runs up to 30 of these concurrently, and
@@ -248,6 +272,12 @@ def main() -> int:
         w.writeheader()
         w.writerows(halflife_rows)
 
+    curve_csv = REPO_ROOT / "results" / f"retention_leak_{suffix}.csv"
+    with curve_csv.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(curve_rows[0]))
+        w.writeheader()
+        w.writerows(curve_rows)
+    provenance.finalize(manifest, [fixedk_csv, halflife_csv, curve_csv])
     print(f"wrote {len(fixedk_rows)} rows to {fixedk_csv}, {len(halflife_rows)} rows to {halflife_csv}")
     return 0
 

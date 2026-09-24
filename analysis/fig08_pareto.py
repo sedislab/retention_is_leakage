@@ -28,7 +28,6 @@ _INF_SENTINEL = 32.0  # plotted position for eps=inf on the log-x axis, clearly 
 _UNIT_COLOR = {"U1": "#1b9e77", "U2": "#d95f02"}
 _UNIT_MARKER = {"U1": "o", "U2": "s"}
 _REF_STYLE = {"m0_fedavg": ("#999999", "--"), "m8_analytic": ("#333333", ":")}
-_REF_LABEL = {"m0_fedavg": "M0 (non-private, no retention)", "m8_analytic": "M8 (non-private, exact Gram)"}
 
 
 def main() -> int:
@@ -48,34 +47,34 @@ def main() -> int:
             by_eps: dict = defaultdict(list)
             for r in m9_rows:
                 eps = float(r["eps_target"])
-                by_eps[eps].append(float(r["final_acc"]))
+                by_eps[eps].append(r)
             if not by_eps:
                 continue
             eps_sorted = sorted(by_eps)
             x = [(_INF_SENTINEL if np.isinf(e) else e) for e in eps_sorted]
-            y = [float(np.mean(by_eps[e])) for e in eps_sorted]
+            y = [float(by_eps[e][0]["final_acc_mean"]) for e in eps_sorted]
+            plotting.ci_band(ax,x,[float(by_eps[e][0]["ci_lo"]) for e in eps_sorted],[float(by_eps[e][0]["ci_hi"]) for e in eps_sorted],color=_UNIT_COLOR[unit])
             ax.plot(x, y, color=_UNIT_COLOR[unit], marker=_UNIT_MARKER[unit], markersize=4,
-                     linewidth=1.2, label=f"M9 ({unit})")
+                     linewidth=1.2, label=f"{plotting.display_name('m9_contractive', short=True)} ({unit})")
 
         for method in ("m0_fedavg", "m8_analytic"):
             ref_rows = [r for r in ds_rows if r["method"] == method]
             if not ref_rows:
                 continue
-            val = float(np.mean([float(r["final_acc"]) for r in ref_rows]))
+            val = float(ref_rows[0]["final_acc_mean"])
             color, style = _REF_STYLE[method]
-            ax.axhline(val, color=color, linestyle=style, linewidth=1.0, label=_REF_LABEL[method])
+            ax.axhline(val, color=color, linestyle=style, linewidth=1.0, label=plotting.display_name(method) + " (non-private)")
 
         ax.set_xscale("log")
         ax.set_xlabel(r"$\varepsilon$", fontsize=8)
         ax.set_title(dataset, fontsize=8)
-        ax.tick_params(labelsize=6)
+        ax.tick_params(labelsize=7)
         ax.axvline(_INF_SENTINEL * 0.6, color="#cccccc", linewidth=0.5, linestyle=":")
-        ax.text(_INF_SENTINEL, 0.02, "inf", fontsize=5, ha="center", transform=ax.get_xaxis_transform())
+        ax.text(_INF_SENTINEL, 0.02, "inf", fontsize=7, ha="center", transform=ax.get_xaxis_transform())
 
     axes[0].set_ylabel("final average accuracy", fontsize=8)
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, fontsize=6, loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.0))
-    fig.suptitle("FIG08 v2 — Privacy-utility Pareto (M9, gamma=1.0, T=10)", fontsize=9)
+    fig.legend(handles, labels, fontsize=7, loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.0))
     fig.tight_layout(rect=(0.02, 0.22, 1, 0.92))
     plotting.save(fig, "fig08_pareto", out_dir=REPO_ROOT / "figs")
     print("wrote figs/fig08_pareto.{pdf,png}")

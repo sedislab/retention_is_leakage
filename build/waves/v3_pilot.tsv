@@ -1,0 +1,5 @@
+dataset	method	seed	start	count	out_dir	method_config_override
+imagenet_r	m1_glfc	0	0	64	/data/islamm/retention_leakage/shadows_v3/imagenet_r/m1_glfc/seed0	{"distillation_weight": 1.0, "exemplar_budget": 10, "local_epochs": 30, "lr": 0.5, "replay_weight": 2.0, "temperature": 2.0}
+imagenet_r	m2_target	0	0	64	/data/islamm/retention_leakage/shadows_v3/imagenet_r/m2_target/seed0	{"local_epochs": 30, "lr": 0.1, "n_synthetic_per_class": 20, "replay_ratio": 1.0, "replay_weight": 0.5}
+imagenet_r	m4_proto	0	0	64	/data/islamm/retention_leakage/shadows_v3/imagenet_r/m4_proto/seed0	{}
+imagenet_r	m5_hybrid_replay	0	0	64	/data/islamm/retention_leakage/shadows_v3/imagenet_r/m5_hybrid_replay/seed0	{"buffer_size_per_class": 10, "local_epochs": 30, "lr": 0.1, "replay_weight": 2.0}

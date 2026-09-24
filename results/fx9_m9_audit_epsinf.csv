@@ -1,0 +1,2 @@
+dataset,unit,eps,gamma,delta,n_shadows,n_pos,n_neg,auc,tpr1,tpr1_ci_hi,bound_at_1pct_fpr,tpr01,tpr01_ci_hi,bound_at_0.1pct_fpr,audit_passed,eps_lb,threshold,direction,thresholds,tpr_lo,fpr_hi,interval_scope
+cifar100,U1,inf,1.0,1e-05,1024,51266,51234,0.9926301011734181,0.871142667654976,0.8740315814781723,1.0,0.7555884992002497,0.7593036490795005,1.0,1,9.063679444568043,-10.333863368795043,(1-FPR)/(1-TPR),102500,0.9999415666377843,0.49536722844420583,one-sided 95% Clopper-Pearson pointwise; threshold maximum is not a simultaneous certificate

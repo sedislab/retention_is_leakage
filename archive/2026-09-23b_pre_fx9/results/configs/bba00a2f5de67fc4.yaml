@@ -1,0 +1,4 @@
+backbone: vit_base_patch14_dinov2.lvd142m
+dataset: cifar100
+probe: logistic_regression
+seed: 0

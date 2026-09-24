@@ -1,0 +1,5 @@
+dataset: cub200
+method: m8_analytic
+purpose: FX2 decoupling ratio (claim C1, H2)
+seed: 0
+view: full

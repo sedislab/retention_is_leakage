@@ -1,74 +1,71 @@
 #!/usr/bin/env python3
-"""Merges every per-combo `results/a1_lira_fixedk_summary_<dataset>_<method>_<view>.csv` /
-`results/fig02_halflife_<dataset>_<method>_<view>.csv` (written by `build_fx2_summary.py` when run
-via `code/scripts/pbs/fx2_leak_wave.pbs`'s manifest-driven array, one file per array task to avoid
-concurrent-write races on one shared file) into the single `results/a1_lira_fixedk_summary.csv` /
-`results/fig02_halflife.csv` FX2 names. Also folds in whatever those shared files already contain
-(e.g. `m0_fedavg`'s standalone run, which writes directly to the shared files since it never runs
-concurrently with anything else touching them) -- run this only after every producer has finished, not
-concurrently with any of them. No computation, pure concatenation + de-dup by key columns.
-"""
-from __future__ import annotations
+"""FX9: rebuild merged summaries ONLY from current per-combo producers."""
 
 import csv
-import sys
+import json
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
+from p3fcl import provenance
+from p3fcl.experiment import CHANGED_METHODS, FX9_START
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
-
-from p3fcl import provenance  # noqa: E402
 
 
-def _merge(shared_name: str, per_combo_glob: str, key_cols: list) -> None:
-    shared_path = REPO_ROOT / "results" / shared_name
+def _merge(shared_name, per_combo_glob, key_cols, validate=False):
+    files = sorted((REPO_ROOT / "results").glob(per_combo_glob))
+    if not files:
+        raise ValueError(f"no per-combo files for {shared_name}")
     rows = []
-    if shared_path.exists():
-        with open(shared_path, newline="") as f:
-            rows.extend(csv.DictReader(f))
+    for path in files:
+        with path.open() as f:
+            rr = list(csv.DictReader(f))
+        if validate and any(r["method"] in CHANGED_METHODS for r in rr):
+            meta = json.loads(path.with_suffix(".csv.meta.json").read_text())
+            assert meta["utc_start"] >= FX9_START, f"stale FX9 source: {path}"
+            assert meta["pbs_jobid"], f"non-PBS FX9 source: {path}"
+        rows.extend(rr)
+    keys = [tuple(str(r[k]) for k in key_cols) for r in rows]
+    if len(keys) != len(set(keys)):
+        raise ValueError(f"duplicate per-combo keys in {shared_name}")
+    if validate:
+        expected = 462 if shared_name.startswith("a1_") else 165
+        assert len(rows) == expected, (shared_name, len(rows), expected)
+    path = REPO_ROOT / "results" / shared_name
+    if path.exists():
+        archive = REPO_ROOT / "archive/fx9_shared" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+        archive.mkdir(parents=True)
+        shutil.copy2(path, archive / path.name)
+    rows.sort(key=lambda r: tuple(str(r[k]) for k in key_cols))
+    with path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    manifest = provenance.run_manifest(
+        dict(phase="FX9-5", hypothesis="H2", sources=[str(f) for f in files]), seed=0
+    )
+    provenance.finalize(manifest, [path])
+    print(
+        f"FX9 MERGE {shared_name} per_combo_files={len(files)} rows={len(rows)} reused_shared_rows=0",
+        flush=True,
+    )
 
-    per_combo_files = sorted((REPO_ROOT / "results").glob(per_combo_glob))
-    for path in per_combo_files:
-        with open(path, newline="") as f:
-            rows.extend(csv.DictReader(f))
 
-    if not rows:
-        print(f"no rows found for {shared_name} (no shared file, no per-combo files matching {per_combo_glob})", file=sys.stderr)
-        return
-
-    seen = set()
-    deduped = []
-    for r in reversed(rows):  # later (per-combo) sources win over the shared file's stale copy
-        key = tuple(r[c] for c in key_cols)
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(r)
-    deduped.reverse()
-
-    fieldnames = list(rows[0].keys())
-    with open(shared_path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        w.writerows(deduped)
-    print(f"merged {len(per_combo_files)} per-combo files + existing shared file into {shared_path}: {len(deduped)} rows")
-
-    config = {"seed": 0, "purpose": f"FX2 merge of per-combo leak summary files into {shared_name}"}
-    manifest = provenance.run_manifest(config, seed=0)
-    provenance.finalize(manifest, [shared_path])
-
-
-def main() -> int:
+def main():
     _merge(
-        "a1_lira_fixedk_summary.csv", "a1_lira_fixedk_summary_*.csv",
-        key_cols=["dataset", "method", "family", "view", "ablation", "elapsed"],
+        "a1_lira_fixedk_summary.csv",
+        "a1_lira_fixedk_summary_*.csv",
+        ["dataset", "method", "family", "view", "ablation", "elapsed"],
+        validate=True,
     )
     _merge(
-        "fig02_halflife.csv", "fig02_halflife_*.csv",
-        key_cols=["dataset", "method", "family", "view", "quantity", "ablation"],
+        "fig02_halflife.csv",
+        "fig02_halflife_*.csv",
+        ["dataset", "method", "family", "view", "quantity", "ablation"],
+        validate=True,
     )
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

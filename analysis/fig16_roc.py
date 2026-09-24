@@ -17,7 +17,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 from p3fcl import plotting  # noqa: E402
-from p3fcl.artifacts import Family  # noqa: E402
 
 _LINESTYLES = ["-", "--", ":", "-.", (0, (3, 1, 1, 1, 1, 1))]
 
@@ -36,14 +35,8 @@ def main() -> int:
     for r in rows:
         by_dataset_method[(r["dataset"], r["method"])].append(r)
 
-    linestyle_for_method: dict = {}
-    for method in methods:
-        family = Family(next(r["family"] for r in rows if r["method"] == method))
-        n_seen = sum(1 for m in linestyle_for_method.values() if m == family)
-        linestyle_for_method[method] = (family, _LINESTYLES[n_seen % len(_LINESTYLES)])
-
     fig, axes = plt.subplots(
-        1, len(datasets), figsize=(plotting.column_width("double") * len(datasets) / 2, 4.2),
+        1, len(datasets), figsize=(5.5, 3.2),
         squeeze=False,
     )
 
@@ -53,11 +46,11 @@ def main() -> int:
             method_rows = sorted(by_dataset_method[(dataset, method)], key=lambda r: float(r["fpr"]))
             if not method_rows:
                 continue
-            family, linestyle = linestyle_for_method[method]
-            style = plotting.style_for(family)
+            linestyle = _LINESTYLES[methods.index(method) % len(_LINESTYLES)]
+            style = plotting.method_style(method)
             fpr = [max(float(r["fpr"]), 1e-4) for r in method_rows]
             tpr = [max(float(r["tpr"]), 1e-4) for r in method_rows]
-            ax.plot(fpr, tpr, color=style["color"], linestyle=linestyle, linewidth=1.2, label=method)
+            ax.plot(fpr, tpr, color=style["color"], linestyle=linestyle, linewidth=1.2, label=plotting.display_name(method))
         ax.plot([1e-4, 1], [1e-4, 1], color="0.7", linewidth=0.7, linestyle=":")
         ax.set_xscale("log")
         ax.set_yscale("log")
@@ -65,13 +58,12 @@ def main() -> int:
         ax.set_ylim(1e-4, 1)
         ax.set_title(dataset, fontsize=8)
         ax.set_xlabel("FPR", fontsize=7)
-        ax.tick_params(labelsize=6)
+        ax.tick_params(labelsize=7)
 
     axes[0][0].set_ylabel("TPR", fontsize=7)
     handles, labels = axes[0][0].get_legend_handles_labels()
-    fig.legend(handles, labels, fontsize=6, loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.0))
-    fig.suptitle("FIG16 — Log-log ROC, A1 LiRA (elapsed=0, seed=0)", fontsize=9)
-    fig.tight_layout(rect=(0, 0.18, 1, 0.93))
+    fig.legend(handles, labels, fontsize=7, loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.32, 1, 0.96))
     plotting.save(fig, "fig16_roc", out_dir=REPO_ROOT / "figs")
     print("wrote figs/fig16_roc.{pdf,png}")
     # Paper caption: "Log-log ROC for A1 cross-task LiRA, elapsed=0, one representative seed per

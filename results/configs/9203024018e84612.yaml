@@ -1,0 +1,8 @@
+figure: fig05_eps_of_T
+height_inches: 4.3
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- fig05_eps_of_T.csv
+- method_descriptions.csv
+width_inches: 5.5

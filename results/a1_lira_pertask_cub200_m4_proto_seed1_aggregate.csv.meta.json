@@ -1,16 +1,16 @@
 {
-  "source_hash": "fab2e48b30d4b05c9c3e385017f0fca9c2922553e763c5a0e3779a3b7484faca",
-  "config_hash": "f2f4b8d66782ca97",
+  "source_hash": "31831aaac4b18dd4058d4b2a531a8986c632e82bfe0a29a3c72f11608c5e1496",
+  "config_hash": "47c937d130bbf9e5",
   "seed": 0,
   "hostname": "n032",
-  "pbs_jobid": "183944[15].bcm11",
-  "pbs_array_index": "15",
+  "pbs_jobid": "184420[9].bcm11",
+  "pbs_array_index": "9",
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-23T06:33:12.553382+00:00",
+  "utc_start": "2026-09-24T03:11:21.382233+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/a1_lira_pertask_cub200_m4_proto_seed1_aggregate.csv",
-  "utc_end": "2026-09-23T06:33:14.047127+00:00",
-  "wall_seconds": 1.493745
+  "utc_end": "2026-09-24T03:11:22.842165+00:00",
+  "wall_seconds": 1.459932
 }

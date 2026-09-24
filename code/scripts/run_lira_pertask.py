@@ -41,6 +41,7 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "scripts"))
 import run_lira  # noqa: E402
 from p3fcl import features, metrics, provenance, streams  # noqa: E402
 from p3fcl import rng as rng_mod  # noqa: E402
+from p3fcl.paths import shadow_dir  # noqa: E402
 from p3fcl.shadow_runner import METHOD_REGISTRY, build_targets  # noqa: E402
 
 K_SET = [0, 1, 2, 3]
@@ -48,23 +49,15 @@ E_MAX = 6
 BACKBONE = "vit_base_patch16_224.augreg_in21k"
 
 
+def _calibration_key(dataset, method, view, file_suffix=""):
+    # FX9 M4 global and aggregate are the SAME score in class-incremental streams.
+    # Pair their calibration split too, so reporting differences cannot be split noise.
+    calibration_view = "aggregate" if method == "m4_proto" and view == "global" else view
+    return f"run_lira_pertask::calib_split::{dataset}::{method}::{calibration_view}{file_suffix}"
+
+
 def _shadow_dir(dataset: str, method: str, seed: int) -> Path:
-    """`m0_fedavg` reuses its pre-fix `shadows/` store unconditionally (FX4i, `08_FIX_PLAN.md` §4i:
-    "M0: no new shadows if it passed test (i)."), old layout (seed 0 = `shadows/<dataset>/<method>`,
-    seed>0 = `.../seed<S>`). Every other method's pre-fix `shadows/<dataset>/<method>` directory (no
-    seed suffix) is STALE data from before FX4b-e's fixes -- `_shadow_dir` must never fall back to it
-    just because it happens to exist on disk. Real bug this guards against: `shadows/cifar100/m4_proto`
-    (pre-fix) and `shadows_v2/cifar100/m4_proto/seed0` (post-fix, multi-view) both exist; an
-    existence-based fallback would silently score the STALE pre-fix store at seed 0 for every non-M0
-    method, exactly the "nine methods with nine checkpoint formats" failure mode CLAUDE.md non-negotiable
-    #1 warns about."""
-    if method == "m0_fedavg":
-        d = REPO_ROOT / "shadows" / dataset / method
-        if seed != 0:
-            d = d / f"seed{seed}"
-        if d.exists():
-            return d
-    return REPO_ROOT / "shadows_v2" / dataset / method / f"seed{seed}"
+    return shadow_dir(dataset, method, seed, root=REPO_ROOT)
 
 
 def _rebuild_and_verify_targets(dataset: str, seed: int, shadow_dir: Path, attack_cfg: dict) -> list:
@@ -155,7 +148,7 @@ def main() -> int:
         idx_by_k.setdefault(t["task"], []).append(j)
     print(f"{dataset}/{method}/seed{seed}/{view}: {n_shadows} shadows, {len(targets)} targets, {n_rounds} rounds")
 
-    r = rng_mod.seeded(f"run_lira_pertask::calib_split::{dataset}::{method}::{view}{file_suffix}", calib_seed)
+    r = rng_mod.seeded(_calibration_key(dataset, method, view, file_suffix), calib_seed)
     perm = r.permutation(n_shadows)
     n_calib = int(round(calib_frac * n_shadows))
     calib_idx, eval_idx = perm[:n_calib], perm[n_calib:]

@@ -26,8 +26,8 @@ def _fmt(mean: str, lo: str, hi: str) -> str:
 
 
 def main() -> int:
-    with open(REPO_ROOT / "results" / "fig01_decoupling.csv", newline="") as f:
-        rows = list(csv.DictReader(f))
+    with open(REPO_ROOT / "results" / "a1_lira_fixedk_summary.csv", newline="") as f:
+        rows = [r for r in csv.DictReader(f) if r["ablation"] == "trajectory"]
 
     by_method: dict = defaultdict(list)
     for r in rows:
@@ -40,9 +40,9 @@ def main() -> int:
             table_rows.append({
                 "dataset": dataset, "method": method, "view": view, "condition": tag,
                 "elapsed": r["elapsed"],
-                "tpr1": _fmt(r["tpr1_mean"], r["tpr1_ci_lo"], r["tpr1_ci_hi"]),
-                "tpr01": _fmt(r["tpr01_mean"], r["tpr01_ci_lo"], r["tpr01_ci_hi"]),
-                "auc": _fmt(r["auc_mean"], r["auc_ci_lo"], r["auc_ci_hi"]),
+                "tpr1": _fmt(r["tpr1"], r["tpr1_ci_lo"], r["tpr1_ci_hi"]),
+                "tpr01": _fmt(r["tpr01"], r["tpr01_ci_lo"], r["tpr01_ci_hi"]),
+                "auc": _fmt(r["auc"], r["auc_ci_lo"], r["auc_ci_hi"]),
             })
 
     out_dir = REPO_ROOT / "tables"
@@ -68,6 +68,9 @@ def main() -> int:
     (out_dir / "tab03_leakage.tex").write_text("\n".join(tex_lines) + "\n")
 
     print(f"wrote {len(table_rows)} rows to {csv_path} and tab03_leakage.tex")
+    from p3fcl import provenance
+    manifest = provenance.run_manifest(dict(phase="FX9-10", table="tab03_leakage", source="a1_lira_fixedk_summary.csv"), seed=0)
+    provenance.finalize(manifest, [out_dir/"tab03_leakage.csv", out_dir/"tab03_leakage.tex"])
     return 0
 
 

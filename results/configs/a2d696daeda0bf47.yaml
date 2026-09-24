@@ -1,0 +1,6 @@
+phase: FX9
+reused_shared_rows: 0
+sources:
+- /data/islamm/retention_leakage/results/fx9_ratio_cifar100_m0_fedavg_full.csv
+- /data/islamm/retention_leakage/results/fx9_ratio_cub200_m0_fedavg_full.csv
+- /data/islamm/retention_leakage/results/fx9_ratio_imagenet_r_m0_fedavg_full.csv

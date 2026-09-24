@@ -1,0 +1,9 @@
+dataset: imagenet_r
+method: M4
+method_config:
+  feature_dim: 768
+  n_classes: 200
+  prototype_momentum: 0.0
+n_tasks: 10
+phase: FX9-4
+seed: 3

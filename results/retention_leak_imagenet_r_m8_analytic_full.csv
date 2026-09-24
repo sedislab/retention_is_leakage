@@ -1,0 +1,15 @@
+dataset,method,family,view,quantity,elapsed,raw,raw_ci_lo,raw_ci_hi,norm,norm_ci_lo,norm_ci_hi,n_seeds
+imagenet_r,m8_analytic,F5,full,leak_tpr1,0,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_tpr1,1,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_tpr1,2,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_tpr1,3,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_tpr1,4,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_tpr1,5,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_tpr1,6,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,0,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,1,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,2,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,3,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,4,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,5,1.0,1.0,1.0,1.0,1.0,1.0,3
+imagenet_r,m8_analytic,F5,full,leak_auc,6,1.0,1.0,1.0,1.0,1.0,1.0,3

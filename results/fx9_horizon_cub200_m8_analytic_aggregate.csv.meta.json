@@ -1,0 +1,16 @@
+{
+  "source_hash": "66586bbc2f9e4b6db046c00a1d41d67c1272a47a3d819d3543cd5633e1c17c7b",
+  "config_hash": "ecf9d5ab206699c4",
+  "seed": 0,
+  "hostname": "n042",
+  "pbs_jobid": "184371[8].bcm11",
+  "pbs_array_index": "8",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-24T01:49:07.883020+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/fx9_horizon_cub200_m8_analytic_aggregate.csv",
+  "utc_end": "2026-09-24T01:50:36.541266+00:00",
+  "wall_seconds": 88.658246
+}

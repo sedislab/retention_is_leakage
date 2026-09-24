@@ -1,92 +1,82 @@
 #!/usr/bin/env python3
-"""FIG02 v2 — leakage/accuracy half-life forest plot (claim C1; FX2, `08_FIX_PLAN.md` §7c/7d).
-Reads `results/fig02_halflife.csv` (`code/scripts/build_fx2_summary.py`/`build_fx2_accuracy_summary.py`'s
-output — no computation here, CLAUDE.md non-negotiable #3).
-
-Definition 10's three-way `status` (not the old binary `censored` flag): `ok` gets a real point + CI;
-`censored` (real signal, never crossed 50% within the observed horizon `E`) is drawn as a right-
-pointing arrow at `E`, never a fabricated fitted number past it; `no_signal` (the quantity never
-cleared its chance floor with confidence) is dropped from the plot entirely and reported separately
-underneath, since a point at any x-position would misleadingly suggest a defined value where there is
-none. Restricted to the primary `quantity=leak_tpr1` (CLAUDE.md non-negotiable #5) and the primary
-`ablation=trajectory` (H3's transcript arm) plus every `quantity=acc` row, to keep the forest plot to
-one row per (dataset, method, view) rather than one row per (quantity x ablation) combination.
-
-Log-x axis (`03_RESULTS_SPEC.md`'s own "log scale where the data is multiplicative" rule) — half-life
-is exactly that kind of quantity.
-"""
-from __future__ import annotations
+"""FX9 FIG02 retention-at-horizon scatter; half-life numbers remain in TAB04."""
 
 import csv
-import sys
 from pathlib import Path
-
+import numpy as np
 import matplotlib.pyplot as plt
+from p3fcl import plotting
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
-
-from p3fcl import plotting  # noqa: E402
-from p3fcl.artifacts import Family  # noqa: E402
-
-_QUANTITY_COLOR = {"acc": "#1b9e77", "leak_tpr1": "#d95f02"}
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def main() -> int:
-    csv_path = REPO_ROOT / "results" / "fig02_halflife.csv"
-    with open(csv_path, newline="") as f:
-        all_rows = list(csv.DictReader(f))
-
-    rows = [
-        r for r in all_rows
-        if (r["quantity"] == "acc") or (r["quantity"] == "leak_tpr1" and r["ablation"] == "trajectory")
-    ]
-    rows.sort(key=lambda r: (r["dataset"], r["method"], r["view"], r["quantity"]))
-
-    plotted = [r for r in rows if r["status"] != "no_signal"]
-    no_signal_rows = [r for r in rows if r["status"] == "no_signal"]
-    labels = [f"{r['dataset']} {r['method']}/{r['view']} · {r['quantity']}" for r in plotted]
-
-    fig, ax = plt.subplots(figsize=(plotting.column_width("double") * 0.7, 0.35 * len(plotted) + 1.5))
-
-    horizon_E = float(plotted[0]["horizon_E"]) if plotted else 6.0
-    for i, r in enumerate(plotted):
-        family = Family(r["family"])
-        style = plotting.style_for(family)
-        color = _QUANTITY_COLOR.get(r["quantity"], style["color"])
-        if r["status"] == "censored":
-            ax.annotate(
-                "", xy=(horizon_E * 1.6, i), xytext=(horizon_E, i),
-                arrowprops=dict(arrowstyle="-|>", color=color, lw=1.5),
+def main():
+    with (ROOT / "results/retention_curves.csv").open() as f:
+        rows = [r for r in csv.DictReader(f) if r["elapsed"] == "6"]
+    fig, axes = plt.subplots(1, 3, figsize=(5.5, 2.4))
+    for ax, ds in zip(axes, ["cifar100", "cub200", "imagenet_r"]):
+        rr = [r for r in rows if r["dataset"] == ds]
+        for leak in [r for r in rr if r["quantity"] == "leak_tpr1"]:
+            acc = next(
+                r
+                for r in rr
+                if r["quantity"] == "acc"
+                and r["method"] == leak["method"]
+                and r["view"] == leak["view"]
             )
-            ax.plot([horizon_E], [i], marker="|", color=color)
-        else:  # ok
-            halflife = float(r["halflife"])
-            if r["ci_lo"] not in ("", "None") and r["ci_hi"] not in ("", "None"):
-                lo, hi = float(r["ci_lo"]), float(r["ci_hi"])
-                xerr = [[max(0.0, halflife - lo)], [max(0.0, hi - halflife)]]
-            else:
-                xerr = None
-            ax.errorbar([halflife], [i], xerr=xerr, fmt=style["marker"], color=color, capsize=3)
-
-    ax.set_xscale("log")
-    ax.axvline(horizon_E, color="0.8", linewidth=0.5, linestyle="--")
-    ax.set_yticks(range(len(plotted)))
-    ax.set_yticklabels(labels, fontsize=6)
-    ax.set_xlabel(f"half-life (elapsed tasks, log scale; horizon E={horizon_E:g})", fontsize=8)
-    ax.set_title("FIG02 v2 — Accuracy and leakage half-life", fontsize=8)
-    if no_signal_rows:
-        ax.text(
-            0.01, -0.12, f"{len(no_signal_rows)} row(s) omitted: no_signal (never cleared chance floor)",
-            transform=ax.transAxes, fontsize=6, va="top",
-        )
-    fig.tight_layout()
-    plotting.save(fig, "fig02_halflife", out_dir=REPO_ROOT / "figs")
-    print("wrote figs/fig02_halflife.{pdf,png}")
-    if no_signal_rows:
-        print(f"omitted {len(no_signal_rows)} no_signal rows: " + ", ".join(f"{r['dataset']}/{r['method']}/{r['view']}/{r['quantity']}" for r in no_signal_rows))
-    return 0
+            if not leak["norm"] or not acc["norm"]:
+                continue
+            x, y = float(acc["norm"]), float(leak["norm"])
+            if not np.isfinite([x, y]).all():
+                continue
+            # CIs may exclude the point estimate; draw interval endpoints directly.
+            style = plotting.method_style(leak["method"])
+            ax.hlines(
+                y,
+                float(acc["norm_ci_lo"]),
+                float(acc["norm_ci_hi"]),
+                color=style["color"],
+                linewidth=0.6,
+            )
+            ax.vlines(
+                x,
+                float(leak["norm_ci_lo"]),
+                float(leak["norm_ci_hi"]),
+                color=style["color"],
+                linewidth=0.6,
+            )
+            marker = {"full": "o", "aggregate": "s", "global": "^"}[leak["view"]]
+            ax.plot(
+                x,
+                y,
+                marker=marker,
+                color=style["color"],
+                markersize=3,
+                linestyle="none",
+            )
+            ax.annotate(
+                plotting.display_name(leak["method"], short=True),
+                (x, y),
+                xytext=(2, 2),
+                textcoords="offset points",
+                fontsize=7,
+            )
+        ax.axhline(1, color=".5", linestyle="--", linewidth=0.6)
+        ax.axline((0, 0), slope=1, color=".6", linestyle=":", linewidth=0.6)
+        ax.set_title(ds)
+        ax.set_xlabel("accuracy A(6)")
+    axes[0].set_ylabel("leakage L(6)")
+    fig.text(
+        0.5,
+        0.015,
+        "○ full   □ aggregate   △ global     dashed: leakage unchanged; dotted: y = x",
+        ha="center",
+        fontsize=7,
+    )
+    fig.subplots_adjust(left=0.10, right=0.99, top=0.90, bottom=0.25, wspace=0.38)
+    plotting.save(fig, "fig02_retention_at_horizon", out_dir=ROOT / "figs")
+    plotting.save(fig, "fig02_halflife", out_dir=ROOT / "figs")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

@@ -1,0 +1,8 @@
+calibration_frac: 0.8
+datasets:
+- cifar100
+methods:
+  cifar100:
+  - m2_target
+purpose: FIG16 log-log ROC curves, seed=0, elapsed=0, trajectory ablation
+seed: 0

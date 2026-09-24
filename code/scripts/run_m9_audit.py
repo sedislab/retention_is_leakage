@@ -34,6 +34,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from p3fcl.paths import SHADOW_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
@@ -72,7 +73,7 @@ def _hparams_for(eps: float) -> tuple:
 
 
 def _shadow_dir(eps: float) -> Path:
-    return REPO_ROOT / "shadows_v2" / DATASET / "m9_contractive" / f"eps{_eps_tag(eps)}"
+    return REPO_ROOT / SHADOW_ROOT["m9_contractive"] / DATASET / "m9_contractive" / f"eps{_eps_tag(eps)}"
 
 
 def generate_shadows(workers: int) -> None:

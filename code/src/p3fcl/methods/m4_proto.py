@@ -4,15 +4,10 @@ is P2/GPU work); this is the cacheable CPU half that exercises F2+F7 end to end 
 required methods for the P5 semantic-vs-individual dose-response split
 (`retention_type = "semantic"`; counts can be switched off via `release_counts=False`).
 
-`prototype_momentum` is the retention knob for FIG03/FIG04: 0 means each task's prototype for a class
-simply overwrites the last (no cross-task carry of raw influence); > 0 blends with the previous
-released value. Per CLAUDE.md non-negotiable #2, that carried-forward *value* is itself an indirect
-channel for old data, so `touched` on a momentum-updated release is the union of this task's raw ids
-for that class and every previously touched id that ever fed that (client, class) prototype — not
-just this task's. Under class-incremental streams a class is assigned to exactly one task, so this
-carry-over never actually fires and H6's "F2 single-pass is task-disjoint" holds; under domain-
-incremental streams (e.g. Camelyon17, same classes recur every task) it does fire, and
-`dp.accountant.check_disjointness` correctly reports a V2/V3 violation when `momentum > 0`.
+FX9: clients release their local means and counts. The server first count-weights
+all clients' prototypes within a round, then blends that aggregate with its prior
+bank once per class. Momentum is post-processing of released statistics; it does
+not read old raw examples or change the local releases' touched sets.
 """
 from __future__ import annotations
 
@@ -38,7 +33,6 @@ class PrototypeFCL(FCLMethod):
         self.d = int(config["feature_dim"])
         self.release_counts = bool(config.get("release_counts", True))
         self._prototypes = np.full((self.n_classes, self.d), np.nan)
-        self._proto_touched: dict = {}  # (client, class) -> frozenset of every raw id ever contributing
         self._round = 0
 
     def rounds_per_task(self) -> int:
@@ -46,6 +40,8 @@ class PrototypeFCL(FCLMethod):
 
     def fit_task(self, task_idx, X, y, ids, client_shards, rng) -> list:
         records = []
+        sums = np.zeros_like(self._prototypes)
+        weights = np.zeros(self.n_classes)
         for shard in client_shards:
             idx = np.array(shard.ids, dtype=int)
             Xc, yc = X[idx], y[idx]
@@ -57,17 +53,11 @@ class PrototypeFCL(FCLMethod):
                 mask = yc == c
                 mean_c = Xc[mask].mean(axis=0)
                 new_ids = frozenset(int(i) for i in idx[mask])
-                key = (shard.client, c)
-                if self.momentum > 0 and key in self._proto_touched:
-                    self._prototypes[c] = self.momentum * self._prototypes[c] + (1 - self.momentum) * mean_c
-                    touched_c = self._proto_touched[key] | new_ids
-                else:
-                    self._prototypes[c] = mean_c
-                    touched_c = new_ids
-                self._proto_touched[key] = touched_c
-                proto_payload[str(c)] = self._prototypes[c].copy()
+                proto_payload[str(c)] = mean_c.copy()
                 counts[c] = int(mask.sum())
-                client_touched |= touched_c
+                sums[c] += counts[c] * mean_c
+                weights[c] += counts[c]
+                client_touched |= new_ids
             records.append(
                 ArtifactRecord(
                     round=self._round,
@@ -78,7 +68,7 @@ class PrototypeFCL(FCLMethod):
                     touched=frozenset(client_touched),
                     n_touched=len(client_touched),
                     passes_over_data=1,
-                    meta={"momentum": self.momentum},
+                    meta={"momentum": 0.0, "server_momentum": self.momentum},
                 )
             )
             if self.release_counts:
@@ -95,6 +85,12 @@ class PrototypeFCL(FCLMethod):
                         meta={},
                     )
                 )
+        for c in np.flatnonzero(weights):
+            aggregate = sums[c] / weights[c]
+            if self.momentum > 0 and np.isfinite(self._prototypes[c]).all():
+                self._prototypes[c] = self.momentum * self._prototypes[c] + (1-self.momentum) * aggregate
+            else:
+                self._prototypes[c] = aggregate
         self._round += 1
         return records
 

@@ -1,0 +1,2 @@
+dataset,method,knob_name,knob_value,seed,retention_bwt,final_acc
+cifar100,m2_target,n_synthetic_per_class,50,0,-0.021555555555555564,0.8346

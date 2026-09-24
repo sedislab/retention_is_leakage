@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from p3fcl.paths import LEGACY_SHADOW_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "scripts"))
@@ -31,7 +32,7 @@ ELAPSED_GRID = [0, 5, 9]  # match the pilot's usual mid-horizon read-out plus th
 
 
 def _shadow_dir(seed: int) -> Path:
-    return REPO_ROOT / "shadows" / DATASET / METHOD / "secure_agg" / f"seed{seed}"
+    return REPO_ROOT / LEGACY_SHADOW_ROOT / DATASET / METHOD / "secure_agg" / f"seed{seed}"
 
 
 def _report_for_seed(seed: int, calib_frac: float, seed_cfg: int) -> dict:

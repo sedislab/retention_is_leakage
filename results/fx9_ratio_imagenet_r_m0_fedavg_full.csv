@@ -1,0 +1,2 @@
+dataset,method,family,view,h_acc,h_leak,ratio,ratio_type,ratio_ci_lo,ratio_ci_hi,n_valid,n_replicates,n_leak_censored,ci_interpretation
+imagenet_r,m0_fedavg,F1,full,0.7587912120292266,6.0,7.907313507169211,lower_bound,7.490788142688481,8.310642922153674,2000,2000,2000,interval for lower-bound statistic; not an upper bound on true ratio

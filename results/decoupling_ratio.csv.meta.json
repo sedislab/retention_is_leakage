@@ -1,16 +1,16 @@
 {
-  "source_hash": "1c52e450c2e1f845cdccafcb0c0d2d2af3127bdc792c04523b197f7623e49903",
-  "config_hash": "9fc265d295f557be",
+  "source_hash": "31831aaac4b18dd4058d4b2a531a8986c632e82bfe0a29a3c72f11608c5e1496",
+  "config_hash": "a2d696daeda0bf47",
   "seed": 0,
-  "hostname": "n029",
-  "pbs_jobid": "184324.bcm11",
+  "hostname": "n038",
+  "pbs_jobid": "184422.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-23T22:28:44.013546+00:00",
+  "utc_start": "2026-09-24T04:07:49.944911+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/decoupling_ratio.csv",
-  "utc_end": "2026-09-23T22:28:45.438560+00:00",
-  "wall_seconds": 1.425014
+  "utc_end": "2026-09-24T04:07:51.439266+00:00",
+  "wall_seconds": 1.494355
 }

@@ -1,0 +1,6 @@
+hypothesis: H2
+phase: FX9
+sources:
+- fx9_gate_cifar100.csv
+- fx9_gate_cub200.csv
+- fx9_gate_imagenet_r.csv

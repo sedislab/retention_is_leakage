@@ -1,0 +1,5 @@
+n_groups: 39
+n_input_rows: 975
+purpose: 'FIG13 Gram-inversion curve: median of per-trial mean cosine + bootstrap
+  CI (H5)'
+seed: 0

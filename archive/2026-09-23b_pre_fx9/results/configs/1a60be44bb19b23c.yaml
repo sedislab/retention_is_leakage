@@ -1,0 +1,3 @@
+dataset: cub200
+purpose: P4 real accuracy matrix per method x seed (FIG01)
+seed: 0

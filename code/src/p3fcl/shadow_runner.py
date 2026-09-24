@@ -99,12 +99,12 @@ def _method_config(method_name: str, n_classes: int, feature_dim: int) -> dict:
     if method_name == "m1_glfc":
         return {
             "n_classes": n_classes, "feature_dim": feature_dim, "local_epochs": 30, "lr": 0.5,
-            "exemplar_budget": 10, "distillation_weight": 1.0, "temperature": 2.0,
+            "replay_weight": 1.0, "exemplar_budget": 10, "distillation_weight": 1.0, "temperature": 2.0,
         }
     if method_name == "m2_target":
         return {
             "n_classes": n_classes, "feature_dim": feature_dim, "local_epochs": 30, "lr": 0.5,
-            "replay_ratio": 1.0, "n_synthetic_per_class": 20,
+            "replay_weight": 1.0, "replay_ratio": 1.0, "n_synthetic_per_class": 20,
         }
     if method_name == "m3_fot":
         return {
@@ -114,7 +114,7 @@ def _method_config(method_name: str, n_classes: int, feature_dim: int) -> dict:
     if method_name == "m5_hybrid_replay":
         return {
             "n_classes": n_classes, "feature_dim": feature_dim, "local_epochs": 30, "lr": 0.5,
-            "buffer_size_per_class": 10,
+            "replay_weight": 1.0, "buffer_size_per_class": 10,
         }
     if method_name == "m9_contractive":
         # Deliberately excludes `pca_basis`: only a caller with dataset (`ref` split) access can fit
@@ -242,21 +242,34 @@ def _reconstruct_running_w_secure_agg(ledger, n_rounds: int, feature_dim: int, n
 
 
 def _reconstruct_prototype_global(ledger, n_rounds: int, n_classes: int, d: int) -> list:
-    """FX4h (08_FIX_PLAN.md §4h): "the server prototype bank after round r, exactly as `predict`
-    uses it." Ledger-only reconstruction (CLAUDE.md non-negotiable #1 -- never reads method internal
-    state): each PROTOTYPE record's payload for class c is *already* the post-blend value the method's
-    own `self._prototypes[c] = ...` line just set (the momentum blend happens before the record is
-    built), so replaying every record in round order with "last write for this class wins" reproduces
-    the broadcast bank exactly. Returns one `(n_classes, d)` array per round (NaN where a class has
-    never been released yet -- unlike `predict()`'s internal NaN-then-huge-distance handling, this
-    reconstruction leaves it as NaN and lets the caller decide)."""
+    """Reconstruct the count-weighted server bank using only round-local F2/F7 records."""
+    ledger = list(ledger)
     bank = np.full((n_classes, d), np.nan)
     out = []
     for r in range(n_rounds):
-        recs = [rec for rec in ledger if rec.family == Family.PROTOTYPE and rec.round == r]
-        for rec in recs:
+        records = [rec for rec in ledger if rec.round == r]
+        counts = {rec.client: rec.payload["counts"] for rec in records if rec.family == Family.COUNTS}
+        sums, weights = np.zeros_like(bank), np.zeros(n_classes)
+        momenta = set()
+        for rec in records:
+            if rec.family != Family.PROTOTYPE:
+                continue
+            momenta.add(float(rec.meta.get("server_momentum", 0.0)))
+            if rec.payload and rec.client not in counts:
+                raise ValueError("prototype global reconstruction requires released F7 counts")
             for c_str, vec in rec.payload.items():
-                bank[int(c_str)] = vec
+                c = int(c_str)
+                w = float(counts[rec.client][c])
+                if w <= 0:
+                    raise ValueError("released prototype must have a positive count")
+                sums[c] += w * vec
+                weights[c] += w
+        if len(momenta) > 1:
+            raise ValueError("inconsistent server momentum within round")
+        momentum = next(iter(momenta), 0.0)
+        for c in np.flatnonzero(weights):
+            agg = sums[c] / weights[c]
+            bank[c] = momentum*bank[c] + (1-momentum)*agg if momentum > 0 and np.isfinite(bank[c]).all() else agg
         out.append(bank.copy())
     return out
 

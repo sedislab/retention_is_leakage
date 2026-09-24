@@ -1,0 +1,14 @@
+dataset: imagenet_r
+method: M1
+method_config:
+  distillation_weight: 1.0
+  exemplar_budget: 10
+  feature_dim: 768
+  local_epochs: 30
+  lr: 0.5
+  n_classes: 200
+  replay_weight: 2.0
+  temperature: 2.0
+n_tasks: 10
+phase: FX9-4
+seed: 2

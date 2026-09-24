@@ -1,0 +1,12 @@
+dataset: cifar100
+eps0:
+- 1
+- 4
+hypotheses:
+- H1
+- H7
+phase: FX9-7
+seed: 0
+tasks:
+- 10
+- 50

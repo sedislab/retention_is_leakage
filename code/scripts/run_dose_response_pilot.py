@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from p3fcl.paths import LEGACY_SHADOW_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "scripts"))
@@ -39,7 +40,7 @@ CALIB_FRAC = 0.8
 
 
 def _shadow_dir(level: int, seed: int) -> Path:
-    return REPO_ROOT / "shadows" / DATASET / METHOD / f"dose_{KNOB_NAME}_{level}" / f"seed{seed}"
+    return REPO_ROOT / LEGACY_SHADOW_ROOT / DATASET / METHOD / f"dose_{KNOB_NAME}_{level}" / f"seed{seed}"
 
 
 def _run_accuracy(level: int, seed: int, X, y, n_classes: int, feature_dim: int) -> float:

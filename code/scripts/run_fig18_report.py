@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from p3fcl.paths import V2_SHADOW_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "scripts"))
@@ -39,7 +40,7 @@ CALIB_FRAC = 0.8
 
 
 def _shadow_dir(partition: str, seed: int) -> Path:
-    return REPO_ROOT / "shadows_v2" / DATASET / METHOD / f"fig18_v2_{partition}" / f"seed{seed}"
+    return REPO_ROOT / V2_SHADOW_ROOT / DATASET / METHOD / f"fig18_v2_{partition}" / f"seed{seed}"
 
 
 def _tpr1_per_elapsed(partition: str, seed: int) -> dict:

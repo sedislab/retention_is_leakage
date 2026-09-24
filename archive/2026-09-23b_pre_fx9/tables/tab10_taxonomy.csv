@@ -1,0 +1,9 @@
+family_id,name,payload_notation,example_published_methods,sufficient_statistic_content,a_priori_risk,cacheable_in_this_project,methods_in_this_zoo
+F1,Model deltas,Δθ,"FedAvg, GLFC, FOT",Full gradient signal,High (known); this project's baseline,Yes (M0/M1/M2/M3/M5 all train only a frozen-ViT linear head in this reimplementation),"M0, M1, M2, M3, M5"
+F2,Class prototypes / feature moments,"mu_c,y, Sigma_c,y","PILoRA, HGP, STSA, pFedMxF",Mean (and covariance) of the client's features for class y,High -- a mean over n samples is a linear query; with small n it is nearly a sample,Yes,M4 (prototype half)
+F3,Prompt pools + keys,"P, k_P","C2Prompt, Fed-CPrompt, TPGP",Learned input-space perturbations optimized on local data,"High (shown centrally exploitable, USENIX'24)","No -- needs real backprop through the frozen ViT (M6, not built to completion this pass)",M6 (not built to completion)
+F4,Low-rank adapters,"A, B","PILoRA, DOLFIN, FCIT-style",Rank-r update subspace,Medium-High; row space of updates,"No -- needs real backprop (M4's LoRA half, not built)",M4-LoRA (not built)
+F5,Analytic Gram / autocorrelation,"R_c = X^T X + lambda I, Q_c = X^T Y",FedRAN and the analytic-FCL line,An exact sufficient statistic of the entire local feature matrix (RESEARCH_PLAN.md §3.4),Critical -- see H5's real result: n=1 reconstruction is exact,Yes,M8
+F6,Generative replay / synthetic data,G,"TARGET, FedCIL, FedER",A generative model fitted to client data,Critical (the model *is* the leak),"Yes (M2's per-class diagonal-Gaussian generator, on frozen features)",M2
+F7,Class-distribution / count vectors,"n_c,y","C2Prompt's compensation, GLFC",Exact per-class counts per client per task,Medium alone; high as a join key -- deanonymizes and reveals events (A6's H10 test),Yes,"M1, M4 (counts)"
+F8,Exemplar buffers,E_c,Hybrid Replay (ICLR'25),Literal raw samples,Trivially critical; included as an upper-bound reference point,Yes,"M1, M5"

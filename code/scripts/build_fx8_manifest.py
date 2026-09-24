@@ -24,6 +24,9 @@ import json
 import sys
 from pathlib import Path
 
+from p3fcl.experiment import gate_overrides
+from p3fcl.paths import SHADOW_ROOT
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DATASET = "cifar100"
@@ -35,12 +38,13 @@ CHUNK = 64
 
 
 def main() -> int:
+    overrides = gate_overrides(DATASET)
     rows = []
     for method, knob_name in KNOBS.items():
         for level in LEVELS:
-            override = json.dumps({knob_name: level}, sort_keys=True)
+            override = json.dumps({**overrides[method], knob_name: level}, sort_keys=True)
             for seed in SEEDS:
-                out_dir = REPO_ROOT / "shadows_v2" / DATASET / method / f"dose_{knob_name}_{level}" / f"seed{seed}"
+                out_dir = REPO_ROOT / SHADOW_ROOT[method] / DATASET / method / f"dose_{knob_name}_{level}" / f"seed{seed}"
                 for start in range(0, N_SHADOWS, CHUNK):
                     rows.append({
                         "dataset": DATASET, "method": method, "knob_name": knob_name,
@@ -49,7 +53,7 @@ def main() -> int:
                         "out_dir": str(out_dir), "method_config_override": override,
                     })
 
-    out_path = REPO_ROOT / "build" / "waves" / "fx8_dose_response.tsv"
+    out_path = REPO_ROOT / "build" / "waves" / "fx9_dose_response.tsv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", newline="") as f:
         w = csv.DictWriter(

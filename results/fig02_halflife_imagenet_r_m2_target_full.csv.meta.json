@@ -1,0 +1,16 @@
+{
+  "source_hash": "31831aaac4b18dd4058d4b2a531a8986c632e82bfe0a29a3c72f11608c5e1496",
+  "config_hash": "339682aad57d8753",
+  "seed": 0,
+  "hostname": "n042",
+  "pbs_jobid": "184420[13].bcm11",
+  "pbs_array_index": "13",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-24T03:11:24.751651+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/fig02_halflife_imagenet_r_m2_target_full.csv",
+  "utc_end": "2026-09-24T03:20:25.611777+00:00",
+  "wall_seconds": 540.860126
+}

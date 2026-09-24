@@ -1,0 +1,6 @@
+count: 128
+dataset: cub200
+method: m1_glfc
+purpose: shadow federation runner
+seed: 0
+start: 3072

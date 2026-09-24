@@ -7,6 +7,8 @@ numerical core that pipeline's aggregation step wires real per-target/per-seed d
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 
 from . import rng as rng_mod
@@ -19,6 +21,86 @@ _LEAK_FLOORS = {"tpr1": FLOOR_TPR1, "tpr01": FLOOR_TPR01, "auc": FLOOR_AUC}
 
 NO_SIGNAL_LEAK_THRESHOLD = 0.005
 NO_SIGNAL_ACC_THRESHOLD = 0.02
+
+
+@dataclass
+class AccuracyCurve:
+    raw: np.ndarray
+    norm: np.ndarray
+    excess: np.ndarray
+    samples: np.ndarray
+    floors: np.ndarray
+    seeds: tuple
+    tasks: tuple
+
+
+def _pool_accuracy(samples, floors):
+    raw = np.mean(samples, axis=(0, 1))
+    excess = np.mean(samples - floors, axis=(0, 1))
+    norm = excess / excess[0] if excess[0] > 0 else np.full_like(excess, np.nan)
+    return raw, norm, excess
+
+
+def accuracy_curve(acc_rows, K=(0, 1, 2, 3), E=6, floor="classes_seen"):
+    """FX9 single source for raw and chance-adjusted accuracy, indexed by elapsed.
+
+    Rows describe ONE dataset/method. Every seed must contain the same complete K×E
+    panel: missing cells fail instead of silently changing the pooled population.
+    Explicit n_classes_seen is supported; otherwise infer it from the named dataset
+    and the number of tasks in the complete accuracy matrix.
+    """
+    rows = list(acc_rows)
+    if not rows:
+        raise ValueError("accuracy_curve requires rows")
+    if floor != "classes_seen":
+        raise ValueError(f"unsupported accuracy floor: {floor}")
+    if len({(r.get("dataset"), r.get("method")) for r in rows}) != 1:
+        raise ValueError("accuracy_curve expects one dataset/method")
+    seeds = tuple(sorted({int(r["seed"]) for r in rows}))
+    tasks = tuple(K)
+    n_tasks = max(int(r["task_k"]) + int(r["elapsed"]) for r in rows) + 1
+    classes = {"cifar100": 100, "cub200": 200, "imagenet_r": 200}
+    index = {}
+    for r in rows:
+        key = (int(r["seed"]), int(r["task_k"]), int(r["elapsed"]))
+        if key in index:
+            raise ValueError(f"duplicate accuracy cell {key}")
+        index[key] = r
+    samples = np.empty((len(seeds), len(tasks), E + 1))
+    floors = np.empty_like(samples)
+    for si, s in enumerate(seeds):
+        for ki, k in enumerate(tasks):
+            for e in range(E + 1):
+                key = (s, k, e)  # elapsed, never task_T = k + e
+                if key not in index:
+                    raise ValueError(f"missing accuracy cell {key}")
+                row = index[key]
+                samples[si, ki, e] = float(row["acc"])
+                if not np.isfinite(samples[si, ki, e]):
+                    raise ValueError(f"nonfinite accuracy cell {key}")
+                seen = row.get("n_classes_seen")
+                if seen in (None, ""):
+                    n_classes = int(row.get("n_classes") or classes[row["dataset"]])
+                    seen = sum(len(c) for c in np.array_split(np.arange(n_classes), n_tasks)[:k + e + 1])
+                floors[si, ki, e] = acc_floor_class_incremental(int(seen))
+    raw, norm, excess = _pool_accuracy(samples, floors)
+    return AccuracyCurve(raw, norm, excess, samples, floors, seeds, tasks)
+
+
+def bootstrap_accuracy_curve(acc_rows, K=(0, 1, 2, 3), E=6, n_replicates=2000, seed=0):
+    """Resample seeds, then tasks within each seed; retain each whole trajectory."""
+    point = accuracy_curve(acc_rows, K=K, E=E)
+    rng = rng_mod.seeded("halflife.hierarchical_bootstrap", seed)
+    raw, norm, excess = [], [], []
+    ns, nk = point.samples.shape[:2]
+    for _ in range(n_replicates):
+        ss = rng.integers(0, ns, size=ns)
+        kk = np.array([rng.integers(0, nk, size=nk) for _ in ss])
+        values = _pool_accuracy(point.samples[ss[:, None], kk], point.floors[ss[:, None], kk])
+        raw.append(values[0])
+        norm.append(values[1])
+        excess.append(values[2])
+    return point, {"raw": np.asarray(raw), "norm": np.asarray(norm), "excess": np.asarray(excess)}
 
 
 def leak_floor(metric: str) -> float:

@@ -16,7 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 FIELDS = [
     "method_id", "display_name", "implemented", "differs_from_original",
-    "retention_mechanism", "released_families",
+    "retention_mechanism", "released_families", "display_short",
 ]
 
 ROWS = [
@@ -139,12 +139,37 @@ ROWS = [
 
 
 def main() -> int:
+    display = {"m0_fedavg": "M0 FedAvg", "m1_glfc": "M1 GLFC", "m2_target": "M2 Gaussian replay (semantic)",
+               "m3_fot": "M3 FOT", "m4_proto": "M4 prototypes", "m5_hybrid_replay": "M5 exemplar replay (individual)",
+               "m8_analytic": "M8 analytic", "m9_contractive": "M9 DP analytic"}
+    for row in ROWS:
+        row["display_name"] = display[row["method_id"]]
+        row["display_short"] = row["method_id"].split("_")[0].upper()
+        if row["method_id"] in {"m1_glfc", "m2_target", "m5_hybrid_replay"}:
+            row["implemented"] += " FX9 objective: CE_mean(current) + replay_weight * CE_mean(replay), default replay_weight=1. M1 additionally retains its old-class KD_mean over current plus buffer."
+        if row["method_id"] == "m5_hybrid_replay":
+            row.update(implemented="Private per-client exemplar buffers train a frozen-feature head with CE_mean(current) + replay_weight * CE_mean(replay), default replay_weight=1. Only the F1 model delta is released; touched includes all replay reads.",
+                       differs_from_original="Frozen-feature replay approximation; client exemplars remain private, as in Hybrid Replay.", released_families="F1 (model delta)")
+        if row["method_id"] == "m9_contractive":
+            row.update(
+                implemented="Closed-form ridge on a PCA basis fitted to the public ref split. Each task releases one clipped, analytic-Gaussian-noised Gram/cross-correlation pair after secure aggregation. The code supports R <- gamma*R + G_tilde and Q <- gamma*Q + H_tilde; all reported sweep/audit and FX9 ledgers use gamma=1.",
+                differs_from_original="This project's proposed DP analytic method. At gamma=1 the retained state accumulates; the current experiments do not test a contractive-update advantage. Non-private M8 comparisons also differ in projection and regularization, as documented by the sweep.",
+                retention_mechanism="Accumulating Gram/cross-correlation state in the reported gamma=1 experiments; optional geometric decay exists in code but is not evaluated in this delivery.",
+            )
+        if row["method_id"] == "m4_proto":
+            row["retention_mechanism"] = "Count-weighted server aggregate of client-local class means; optional momentum blends the server bank once per round. Local F2 means and F7 counts stay unchanged."
+    ROWS.append(dict(method_id="protocol", display_name="Shared protocol", display_short="protocol", implemented="one FedAvg round per task; 30 local epochs; raw frozen features; 10 tasks and 10 clients",
+                     differs_from_original="one FedAvg round per task is a shared limitation; gate overrides are recorded separately",
+                     retention_mechanism="n/a", released_families="n/a"))
     out_csv = REPO_ROOT / "results" / "method_descriptions.csv"
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader()
         w.writerows(ROWS)
+    from p3fcl import provenance
+    manifest = provenance.run_manifest(dict(phase="FX9-10", purpose="method descriptions and shared protocol"), seed=0)
+    provenance.finalize(manifest, [out_csv])
     print(f"wrote {len(ROWS)} rows to {out_csv}")
     return 0
 

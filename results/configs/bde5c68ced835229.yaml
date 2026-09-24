@@ -1,0 +1,8 @@
+figure: fig02_retention_at_horizon
+height_inches: 2.4
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- retention_curves.csv
+- method_descriptions.csv
+width_inches: 5.5

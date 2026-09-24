@@ -1,0 +1,16 @@
+{
+  "source_hash": "2f6e789f727290fa7afec427a48156577d8bb54b4c71f065e7c75dc82ecfde75",
+  "config_hash": "15ec5b0672be705c",
+  "seed": 0,
+  "hostname": "n040",
+  "pbs_jobid": "184372[3].bcm11",
+  "pbs_array_index": "3",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-24T01:30:45.532127+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/dose_response_accuracy_m5_hybrid_replay_2_seed0.csv",
+  "utc_end": "2026-09-24T01:31:01.542772+00:00",
+  "wall_seconds": 16.010645
+}

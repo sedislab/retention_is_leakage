@@ -1,0 +1,11 @@
+dataset: imagenet_r
+hypothesis: H2
+method: m1_glfc
+phase: FX9-9
+replicates: 2000
+sampling: paired seeds/tasks/targets
+seeds:
+- 0
+- 1
+- 2
+view: full

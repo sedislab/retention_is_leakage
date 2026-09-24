@@ -85,18 +85,11 @@ def main() -> int:
 
     row = build_decoupling_ratio(dataset, method, family, view, by_construction=by_construction)
 
-    out_csv = REPO_ROOT / "results" / "decoupling_ratio.csv"
-    existing = []
-    if out_csv.exists():
-        with open(out_csv, newline="") as f:
-            existing = list(csv.DictReader(f))
-    key_cols = ["dataset", "method", "family", "view"]
-    existing = [r for r in existing if tuple(r[c] for c in key_cols) != tuple(row[c] for c in key_cols)]
-    all_rows = existing + [row]
+    out_csv = REPO_ROOT / "results" / f"decoupling_ratio_{dataset}_{method}_{view}.csv"
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(row.keys()))
         w.writeheader()
-        w.writerows(all_rows)
+        w.writerow(row)
     print(f"wrote decoupling_ratio row for {dataset}/{method}/{view}: {row}")
 
     config = {

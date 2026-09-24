@@ -1,0 +1,13 @@
+method,family_declared,cacheable,retention_type,retention_knob,task_disjoint,violations,final_avg_acc_synthetic
+M0_fedavg_sequential (local_epochs=1),F1,True,individual,local_epochs,True,,0.5
+M0_fedavg_sequential (local_epochs=5),F1,True,individual,local_epochs,False,V5b,0.5
+"M1_glfc (no replay, no distill)",F1+F7,True,individual,distillation_weight,True,,0.5
+M1_glfc (replay + distill),F1+F7,True,individual,distillation_weight,False,V2/V3,0.5
+M2_target (replay_ratio=0),F1+F6,True,semantic,replay_ratio,True,,0.5
+M2_target (replay_ratio=1),F1+F6,True,semantic,replay_ratio,True,,0.8333
+M3_fot (projection_strength=1),F1+F5,True,individual,projection_strength,True,,0.975
+"M4_prototype_half (momentum=0, class-IL)",F2+F7,True,semantic,prototype_momentum,True,,1.0
+"M4_prototype_half (momentum=0.9, class-IL)",F2+F7,True,semantic,prototype_momentum,True,,1.0
+"M5_hybrid_replay (buffer=0, no replay)",F8+F1,True,individual,buffer_size_per_class,True,,0.5
+"M5_hybrid_replay (buffer=4, replay on)",F8+F1,True,individual,buffer_size_per_class,False,V2/V3,0.5208
+M8_analytic_fcl,F5,True,individual,ridge_lambda,True,,1.0

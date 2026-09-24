@@ -1,0 +1,9 @@
+dataset: imagenet_r
+method: M8
+method_config:
+  feature_dim: 768
+  n_classes: 200
+  ridge_lambda: 1.0
+n_tasks: 10
+phase: FX9-4
+seed: 3

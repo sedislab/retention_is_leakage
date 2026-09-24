@@ -1,0 +1,8 @@
+figure: fig11_secure_agg
+height_inches: 3.2
+min_fontsize: 7.0
+phase: FX9-8
+sources:
+- fx3_views_summary.csv
+- method_descriptions.csv
+width_inches: 5.5

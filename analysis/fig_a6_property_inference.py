@@ -40,7 +40,7 @@ def main() -> int:
     ax.set_ylim(0.4, 1.05)
     ax.set_xlabel("elapsed tasks ($T - k$)")
     ax.set_ylabel("A6 balanced accuracy\n(property: client c held task-k class y)")
-    ax.set_title("A6 property inference over time (H10)\nM4, CIFAR-100", fontsize=8)
+    ax.set_title("CIFAR-100 · " + plotting.display_name("m4_proto", short=True), fontsize=7)
     ax.legend(fontsize=7, loc="lower right")
     fig.tight_layout()
     plotting.save(fig, "fig_a6_property_inference", out_dir=REPO_ROOT / "figs")

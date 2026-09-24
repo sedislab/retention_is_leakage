@@ -23,7 +23,7 @@ CHUNK=128
 IDX="${PBS_ARRAY_INDEX:-0}"
 START=$(( IDX * CHUNK ))
 SEED="${SEED:-0}"
-OUT_DIR=/data/islamm/retention_leakage/shadows/"${DATASET}"/"${METHOD}"
+OUT_DIR=$(python -m p3fcl.paths --dataset "$DATASET" --method "$METHOD" --seed "${SEED:-0}" --legacy)
 # seed 0 keeps the original (pre-P4) directory layout so every already-computed store stays valid;
 # P4's extra seeds (1,2,3,4,...) for the FIG01 headline get their own subdirectory.
 if [ "$SEED" != "0" ]; then

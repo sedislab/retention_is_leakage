@@ -1,0 +1,3 @@
+dataset: cifar100
+purpose: A3 prototype-difference leakage vs increment size
+seed: 0

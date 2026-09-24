@@ -1,0 +1,5 @@
+datasets:
+- cifar100
+- cub200
+purpose: P4 FIG02/TAB04 half-life + decoupling ratio (claim C1)
+seed: 0

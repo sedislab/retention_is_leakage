@@ -1,0 +1,10 @@
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+purpose: FX4g automatic gate (simulation only)
+seed: 0
+seeds:
+- 0
+- 1
+- 2

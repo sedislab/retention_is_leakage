@@ -43,7 +43,7 @@ ROWS = [
      "FedRAN and the analytic-FCL line",
      "An exact sufficient statistic of the entire local feature matrix (RESEARCH_PLAN.md §3.4)",
      "Critical -- see H5's real result: n=1 reconstruction is exact",
-     "Yes", "M8"),
+     "Yes", "M3, M8, M9"),
     ("F6", "Generative replay / synthetic data", "G", "TARGET, FedCIL, FedER",
      "A generative model fitted to client data",
      "Critical (the model *is* the leak)",
@@ -53,10 +53,10 @@ ROWS = [
      "Exact per-class counts per client per task",
      "Medium alone; high as a join key -- deanonymizes and reveals events (A6's H10 test)",
      "Yes", "M1, M4 (counts)"),
-    ("F8", "Exemplar buffers", "E_c", "Hybrid Replay (ICLR'25)",
+    ("F8", "Exemplar buffers", "E_c", "Potential raw-buffer release (absent from FX9)",
      "Literal raw samples",
-     "Trivially critical; included as an upper-bound reference point",
-     "Yes", "M1, M5"),
+     "Trivially critical if released; M1/M5 keep buffers private in FX9",
+     "Private state only", "None released (M1/M5 buffers are private)"),
 ]
 
 
@@ -84,6 +84,9 @@ def main() -> int:
     (out_dir / "tab10_taxonomy.tex").write_text("\n".join(tex_lines) + "\n")
 
     print(f"wrote {len(ROWS)} rows to {csv_path} and tab10_taxonomy.tex")
+    from p3fcl import provenance
+    manifest = provenance.run_manifest(dict(phase="FX9-10", table="tab10_taxonomy", source="code definitions"), seed=0)
+    provenance.finalize(manifest, [out_dir/"tab10_taxonomy.csv", out_dir/"tab10_taxonomy.tex"])
     return 0
 
 

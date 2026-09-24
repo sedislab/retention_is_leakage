@@ -1,16 +1,16 @@
 {
-  "source_hash": "fab2e48b30d4b05c9c3e385017f0fca9c2922553e763c5a0e3779a3b7484faca",
-  "config_hash": "f09595bb0a547392",
+  "source_hash": "31831aaac4b18dd4058d4b2a531a8986c632e82bfe0a29a3c72f11608c5e1496",
+  "config_hash": "1a3f2b7358f79f1c",
   "seed": 0,
-  "hostname": "n092",
-  "pbs_jobid": "183944[23].bcm11",
-  "pbs_array_index": "23",
+  "hostname": "n073",
+  "pbs_jobid": "184420[17].bcm11",
+  "pbs_array_index": "17",
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-23T06:33:18.813717+00:00",
+  "utc_start": "2026-09-24T03:11:25.504471+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/a1_lira_pertask_imagenet_r_m5_hybrid_replay_seed2_full.csv",
-  "utc_end": "2026-09-23T06:33:20.383359+00:00",
-  "wall_seconds": 1.569642
+  "utc_end": "2026-09-24T03:11:27.010844+00:00",
+  "wall_seconds": 1.506373
 }

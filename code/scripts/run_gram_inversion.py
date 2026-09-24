@@ -43,7 +43,7 @@ REF_QUALITIES = [
     {"name": "clean_small_pool", "noise_std": 0.0, "pool_cap": 20},
     {"name": "noisy_full", "noise_std": 0.5, "pool_cap": None},
 ]
-N_TRIALS_PER_N = 5  # repeat draws per (dataset, class, n, ref_quality) for a CI-able spread
+N_TRIALS_PER_N = 25  # repeat draws per (dataset, class, n, ref_quality) for a CI-able spread
 
 
 def main() -> int:
@@ -64,11 +64,15 @@ def main() -> int:
 
         classes = sorted(set(y_train.tolist()))
         for n in N_GRID:
+            eligible = [c for c in classes if np.sum(y_train == c) >= n and np.any(y_ref == c)]
+            if not eligible:
+                print(f"{dataset}: n={n} unavailable (no class has enough training samples)", flush=True)
+                continue
             for rq in REF_QUALITIES:
                 for trial in range(N_TRIALS_PER_N):
-                    seed = hash((dataset, n, rq["name"], trial)) % (2**31)
+                    seed = 0  # stable named RNG includes dataset, n, quality, trial; no process-randomized hash
                     r = rng_mod.seeded(f"run_gram_inversion::{dataset}::{n}::{rq['name']}::{trial}", seed)
-                    c = classes[r.integers(0, len(classes))]
+                    c = eligible[r.integers(0, len(eligible))]
 
                     class_idx_train = np.where(y_train == c)[0]
                     if len(class_idx_train) < n:

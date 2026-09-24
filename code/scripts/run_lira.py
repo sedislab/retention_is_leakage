@@ -36,6 +36,7 @@ sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 from p3fcl import metrics, provenance  # noqa: E402
 from p3fcl import rng as rng_mod  # noqa: E402
+from p3fcl.paths import shadow_dir as resolve_shadow_dir  # noqa: E402
 
 _EPS = 1e-6
 
@@ -148,9 +149,7 @@ def main() -> int:
 
     # stream_seed 0 keeps the original (pre-P4) directory layout so every already-computed store and
     # its results CSV stay valid; P4's extra seeds get their own subdirectory and a seed-suffixed CSV.
-    shadow_dir = REPO_ROOT / "shadows" / dataset / method
-    if stream_seed != 0:
-        shadow_dir = shadow_dir / f"seed{stream_seed}"
+    shadow_dir = resolve_shadow_dir(dataset, method, stream_seed, root=REPO_ROOT)
     store = load_shadow_store(shadow_dir)
     targets = store["targets"]
     n_shadows = len(store["shadow_ids"])

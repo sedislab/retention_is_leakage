@@ -1,0 +1,6 @@
+count: 64
+dataset: cub200
+method: m3_fot
+purpose: shadow federation runner
+seed: 0
+start: 512

@@ -1,0 +1,4 @@
+hypothesis: H7
+phase: FX9
+source: m9_sweep.csv
+statistic: paired seed difference M9 minus M8

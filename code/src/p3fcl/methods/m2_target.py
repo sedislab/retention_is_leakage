@@ -11,6 +11,8 @@ that already-released, broadcast Gaussian is post-processing (Lemma 8, 08_FIX_PL
 nothing further to any record's `touched` — unlike the pre-fix version, which re-added the *original*
 generator-fitting ids to every later round's model-delta `touched` for as long as a generator kept
 getting sampled from.
+
+FX9 local CE gives current and replay sets separate means, with replay_weight=1.
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ import numpy as np
 
 from ..artifacts import ArtifactRecord, Family
 from .base import FCLMethod, MethodSpec
+from .replay import balanced_gradient
 
 
 def _softmax(z: np.ndarray) -> np.ndarray:
@@ -51,6 +54,7 @@ class TARGET(FCLMethod):
         self.d = int(config["feature_dim"])
         self.local_epochs = int(config.get("local_epochs", 1))
         self.lr = float(config.get("lr", 0.5))
+        self.replay_weight = float(config.get("replay_weight", 1.0))
         self.replay_ratio = float(config.get("replay_ratio", 1.0))
         self.n_synthetic_per_class = int(config.get("n_synthetic_per_class", 20))
         self.W = np.zeros((self.d, self.n_classes))
@@ -75,13 +79,8 @@ class TARGET(FCLMethod):
 
     def _local_train(self, W0, X_task, y_task, X_syn, y_syn) -> np.ndarray:
         W = W0.copy()
-        X_all = np.concatenate([X_task, X_syn], axis=0) if X_syn is not None else X_task
-        y_all = np.concatenate([y_task, y_syn], axis=0) if y_syn is not None else y_task
-        n = len(y_all)
-        Y = np.zeros((n, self.n_classes))
-        Y[np.arange(n), y_all] = 1.0
         for _ in range(self.local_epochs):
-            grad = X_all.T @ (_softmax(X_all @ W) - Y) / n
+            grad = balanced_gradient(W, X_task, y_task, X_syn, y_syn, self.replay_weight)
             W = W - self.lr * grad
         return W
 
@@ -108,7 +107,7 @@ class TARGET(FCLMethod):
                     round=self._round, task=task_idx, client=shard.client, family=Family.MODEL_DELTA,
                     payload=delta, touched=touched_delta, n_touched=len(touched_delta),
                     passes_over_data=self.local_epochs,
-                    meta={"replay_ratio": self.replay_ratio, "agg_weight": float(weight)},
+                    meta={"replay_ratio": self.replay_ratio, "replay_weight": self.replay_weight, "agg_weight": float(weight)},
                 )
             )
 

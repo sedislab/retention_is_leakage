@@ -1,16 +1,16 @@
 {
-  "source_hash": "6b5c5471e6380839a1e958af7bf5ff33dcebda63b7c47ddc6c861bcfd8ad58d5",
-  "config_hash": "940b3e4d10d49dc0",
+  "source_hash": "66586bbc2f9e4b6db046c00a1d41d67c1272a47a3d819d3543cd5633e1c17c7b",
+  "config_hash": "71173cc16f6ab2bd",
   "seed": 0,
-  "hostname": "n038",
-  "pbs_jobid": "183856.bcm11",
+  "hostname": "n029",
+  "pbs_jobid": "184360.bcm11",
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
   "user": "islamm",
-  "utc_start": "2026-09-23T01:51:17.080850+00:00",
+  "utc_start": "2026-09-24T01:34:10.412240+00:00",
   "torch": "2.5.1+cu121",
   "output": "/data/islamm/retention_leakage/results/accuracy_matrix_cub200.csv",
-  "utc_end": "2026-09-23T01:51:21.949965+00:00",
-  "wall_seconds": 4.869115
+  "utc_end": "2026-09-24T01:34:11.889654+00:00",
+  "wall_seconds": 1.477414
 }

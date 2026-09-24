@@ -26,7 +26,6 @@ failing. Absent `fx4_gate.csv`, every method uses its untuned default, same as b
 from __future__ import annotations
 
 import csv
-import json
 import sys
 from pathlib import Path
 
@@ -36,13 +35,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 from p3fcl import features, provenance, sim, streams  # noqa: E402
-from p3fcl.methods.m0_fedavg import FedAvgSequential  # noqa: E402
-from p3fcl.methods.m1_glfc import GLFC  # noqa: E402
-from p3fcl.methods.m2_target import TARGET  # noqa: E402
-from p3fcl.methods.m3_fot import FOT  # noqa: E402
-from p3fcl.methods.m4_proto import PrototypeFCL  # noqa: E402
-from p3fcl.methods.m5_hybrid_replay import HybridReplay  # noqa: E402
-from p3fcl.methods.m8_analytic import AnalyticFCL  # noqa: E402
+from p3fcl.experiment import METHODS, attacked_method_config  # noqa: E402
+from p3fcl.shadow_runner import METHOD_REGISTRY  # noqa: E402
 
 BACKBONE = "vit_base_patch16_224.augreg_in21k"
 DATASET = sys.argv[1] if len(sys.argv) > 1 else "cifar100"
@@ -50,31 +44,6 @@ N_TASKS = 10
 N_CLIENTS = 10
 BETA = 0.5
 SEEDS = [0, 1, 2, 3, 4]
-
-# Same TAB05 headline configs as run_utility_baseline.py / shadow_runner._method_config -- not an
-# attack-specific weakening.
-METHODS = {
-    "m0_fedavg": (FedAvgSequential, {"local_epochs": 30, "lr": 0.5}),
-    "m1_glfc": (GLFC, {"local_epochs": 30, "lr": 0.5, "exemplar_budget": 10, "distillation_weight": 1.0, "temperature": 2.0}),
-    "m2_target": (TARGET, {"local_epochs": 30, "lr": 0.5, "replay_ratio": 1.0, "n_synthetic_per_class": 20}),
-    "m3_fot": (FOT, {"local_epochs": 30, "lr": 0.5, "subspace_rank": 8, "projection_strength": 1.0}),
-    "m4_proto": (PrototypeFCL, {"prototype_momentum": 0.0}),
-    "m5_hybrid_replay": (HybridReplay, {"local_epochs": 30, "lr": 0.5, "buffer_size_per_class": 10}),
-    "m8_analytic": (AnalyticFCL, {"ridge_lambda": 1.0}),
-}
-
-
-def _gate_tuned_overrides(dataset: str) -> dict:
-    gate_csv = REPO_ROOT / "results" / "fx4_gate.csv"
-    if not gate_csv.exists():
-        return {}
-    with open(gate_csv, newline="") as f:
-        rows = [r for r in csv.DictReader(f) if r["dataset"] == dataset and r["config_id"] == "tuned"]
-    out = {}
-    for r in rows:
-        if r.get("used_cfg_json"):
-            out[r["method"]] = json.loads(r["used_cfg_json"])
-    return out
 
 
 def main() -> int:
@@ -87,13 +56,12 @@ def main() -> int:
     X_test, y_test = test_cache["features"], test_cache["labels"]
     idx_test = np.arange(len(y_test))
 
-    gate_overrides = _gate_tuned_overrides(DATASET)
-    if gate_overrides:
-        print(f"using FX4g-tuned configs for: {sorted(gate_overrides)}")
-
     rows = []
-    for method_name, (method_cls, default_cfg) in METHODS.items():
-        method_cfg = gate_overrides.get(method_name, default_cfg)
+    selected = [sys.argv[2]] if len(sys.argv) > 2 else METHODS
+    manifest = provenance.run_manifest(dict(phase="FX9-4", hypothesis="H2", dataset=DATASET, methods=selected, seeds=SEEDS), seed=0)
+    for method_name in selected:
+        method_cls = METHOD_REGISTRY[method_name][0]
+        method_cfg = attacked_method_config(method_name, n_classes, feature_dim, DATASET)
         for seed in SEEDS:
             stream = streams.build_stream(
                 y, np.arange(len(y)), n_tasks=N_TASKS, n_clients=N_CLIENTS, beta=BETA, seed=seed
@@ -121,7 +89,8 @@ def main() -> int:
                   f"bwt={result['bwt']:.4f} (train: {result['final_avg_acc_train']:.4f} / "
                   f"{result['bwt_train']:.4f})")
 
-    out_csv = REPO_ROOT / "results" / f"accuracy_matrix_{DATASET}.csv"
+    suffix = "_" + selected[0] if len(selected) == 1 else ""
+    out_csv = REPO_ROOT / "results" / f"accuracy_matrix_{DATASET}{suffix}.csv"
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
@@ -129,8 +98,6 @@ def main() -> int:
         w.writerows(rows)
     print(f"wrote {len(rows)} rows to {out_csv}")
 
-    config = {"seed": 0, "purpose": "P4 real accuracy matrix per method x seed (FIG01), FX4a test-split fix", "dataset": DATASET}
-    manifest = provenance.run_manifest(config, seed=0)
     provenance.finalize(manifest, [out_csv])
     return 0
 

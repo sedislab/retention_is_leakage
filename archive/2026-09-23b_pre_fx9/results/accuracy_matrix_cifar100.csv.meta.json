@@ -1,0 +1,16 @@
+{
+  "source_hash": "6b5c5471e6380839a1e958af7bf5ff33dcebda63b7c47ddc6c861bcfd8ad58d5",
+  "config_hash": "d7713d15a2acf181",
+  "seed": 0,
+  "hostname": "n038",
+  "pbs_jobid": "183855.bcm11",
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-23T01:58:03.784499+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/accuracy_matrix_cifar100.csv",
+  "utc_end": "2026-09-23T01:58:05.435597+00:00",
+  "wall_seconds": 1.651098
+}

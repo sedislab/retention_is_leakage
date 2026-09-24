@@ -133,8 +133,7 @@ def test_m5_hybrid_replay_end_to_end_on_synthetic_features():
     result = sim.run(method, X, y, stream, seed=0)
     assert result["final_avg_acc_train"] > 0.3
     families = {r.family.value for r in result["ledger"]}
-    assert families == {"F8", "F1"}  # exemplar release AND the replay-augmented delta (see 2026-09-15
-    # correction in the module docstring: omitting F1 made the checker falsely certify disjointness)
+    assert families == {"F1"}  # FX9: exemplars stay private on their own client.
 
 
 def test_m5_hybrid_replay_is_not_task_disjoint_once_buffer_is_reused():
@@ -149,37 +148,16 @@ def test_m5_hybrid_replay_is_not_task_disjoint_once_buffer_is_reused():
     assert "V2/V3" in report.violations
 
 
-def test_m5_hybrid_replay_releases_exact_raw_features():
-    # F8 is "literal raw samples" -- the released feature vectors must be byte-identical to the
-    # cached features at those ids, not a derived statistic.
+def test_m5_buffer_is_private_and_contains_exact_features_with_per_class_cap():
     X, y = _synthetic()
-    idx = np.arange(len(y))
-    stream = build_stream(y, idx, n_tasks=2, n_clients=1, beta=1.0, seed=0)
+    stream = build_stream(y, np.arange(len(y)), n_tasks=3, n_clients=2, beta=1.0, seed=0)
     method = HybridReplay({"n_classes": 6, "feature_dim": X.shape[1], "buffer_size_per_class": 3})
     result = sim.run(method, X, y, stream, seed=0)
-    exemplar_recs = [r for r in result["ledger"] if r.family.value == "F8"]
-    assert exemplar_recs
-    for rec in exemplar_recs:
-        for key, val in rec.payload.items():
-            if key.startswith("ids_"):
-                continue
-            c = int(key.split("_")[1])
-            ids_key = f"ids_{c}"
-            ids_released = rec.payload[ids_key]
-            np.testing.assert_allclose(val, X[ids_released])
-
-
-def test_m5_hybrid_replay_buffer_size_caps_touched_per_class():
-    X, y = _synthetic(per_class=40)
-    idx = np.arange(len(y))
-    stream = build_stream(y, idx, n_tasks=3, n_clients=1, beta=1.0, seed=0)
-    method = HybridReplay({"n_classes": 6, "feature_dim": X.shape[1], "buffer_size_per_class": 2})
-    result = sim.run(method, X, y, stream, seed=0)
-    exemplar_recs = [r for r in result["ledger"] if r.family.value == "F8"]
-    assert exemplar_recs
-    for rec in exemplar_recs:
-        n_classes_in_payload = len([k for k in rec.payload if k.startswith("ids_")])
-        assert rec.n_touched <= 2 * n_classes_in_payload
+    assert not any(r.family.value == "F8" for r in result["ledger"])
+    for entries in method._buffer.values():
+        assert len(entries) <= 3
+        for feature, did in entries:
+            np.testing.assert_array_equal(feature, X[did])
 
 
 def test_m1_glfc_end_to_end_on_synthetic_features():
@@ -349,9 +327,8 @@ def test_m4_prototype_half_class_incremental_is_task_disjoint_even_with_momentum
     assert report.task_disjoint, report.violations
 
 
-def test_m4_prototype_half_domain_incremental_with_momentum_violates_disjointness():
-    # same classes recur every task (domain-incremental) + momentum > 0 -> genuine cross-task
-    # influence -> the checker must catch it (V2/V3), not silently certify.
+def test_m4_server_momentum_is_postprocessing_not_a_raw_data_reread():
+    # FX9 local releases are fresh class means; server momentum only reads released statistics.
     rng = np.random.default_rng(0)
     n_classes, d = 2, 6
     X, y, domain = [], [], []
@@ -369,8 +346,7 @@ def test_m4_prototype_half_domain_incremental_with_momentum_violates_disjointnes
     method = PrototypeFCL({"n_classes": n_classes, "feature_dim": d, "prototype_momentum": 0.5})
     result = sim.run(method, X, y, stream, seed=0)
     report = check_disjointness(result["ledger"])
-    assert not report.task_disjoint
-    assert "V2/V3" in report.violations
+    assert report.task_disjoint, report.violations
 
 
 def test_m4_prototype_half_release_counts_can_be_disabled():

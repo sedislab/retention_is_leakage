@@ -1,0 +1,16 @@
+{
+  "source_hash": "31831aaac4b18dd4058d4b2a531a8986c632e82bfe0a29a3c72f11608c5e1496",
+  "config_hash": "c468d2944adf94d4",
+  "seed": 0,
+  "hostname": "n029",
+  "pbs_jobid": "184431[0].bcm11",
+  "pbs_array_index": "0",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-24T02:10:50.613050+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/retention_leak_cifar100_m0_fedavg_full.csv",
+  "utc_end": "2026-09-24T03:21:43.201236+00:00",
+  "wall_seconds": 4252.588186
+}

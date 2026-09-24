@@ -1,0 +1,16 @@
+{
+  "source_hash": "2f6e789f727290fa7afec427a48156577d8bb54b4c71f065e7c75dc82ecfde75",
+  "config_hash": "bda294ec1d61c0b3",
+  "seed": 0,
+  "hostname": "n029",
+  "pbs_jobid": "184358.bcm11",
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-09-24T01:15:06.110611+00:00",
+  "torch": "2.5.1+cu121",
+  "output": "/data/islamm/retention_leakage/results/fx9_lag_diagnostic.csv",
+  "utc_end": "2026-09-24T01:15:07.715957+00:00",
+  "wall_seconds": 1.605346
+}

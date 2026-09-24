@@ -6,10 +6,12 @@ past that (many thousand npz files), submit as a PBS job -- do not assume it sta
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
 import numpy as np
+from p3fcl.paths import V2_SHADOW_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,21 +22,34 @@ EXPECTED = 1024
 
 
 def main() -> int:
-    base = REPO_ROOT / "shadows_v2"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--root', type=Path, default=REPO_ROOT / V2_SHADOW_ROOT)
+    parser.add_argument('--methods', nargs='+', default=METHODS)
+    parser.add_argument('--manifest', type=Path)
+    args = parser.parse_args()
+    base = args.root
     problems = []
     for dataset in DATASETS:
-        for method in METHODS:
+        for method in args.methods:
             for seed in SEEDS:
                 d = base / dataset / method / f"seed{seed}"
                 files = sorted(d.glob("shadow_*.npz")) if d.exists() else []
                 if len(files) != EXPECTED:
                     problems.append(f"{dataset}/{method}/seed{seed}: {len(files)} files, expected {EXPECTED}")
                     continue
+                assert {int(f.stem.split("_")[-1]) for f in files} == set(range(EXPECTED)), d
                 bad = []
                 for f in files:
                     try:
                         with np.load(f) as z:
-                            _ = z["scores_full"]
+                            for key in z.files:
+                                _ = z[key]
+                            assert z["shadow_id"].shape == ()
+                            assert int(z["shadow_id"]) == int(f.stem.split("_")[-1])
+                            for view in z["views"]:
+                                assert np.isfinite(z[f"scores_{view}"]).any(), view
+                            if method == "m4_proto":
+                                np.testing.assert_allclose(z["scores_global"], z["scores_aggregate"], atol=1e-10, rtol=0, equal_nan=True)
                     except Exception as e:  # noqa: BLE001
                         bad.append((f.name, str(e)))
                 if bad:
@@ -47,7 +62,7 @@ def main() -> int:
         for p in problems:
             print(f"  {p}")
         return 1
-    print("\nAll (dataset, method, seed) combinations have 1024 loadable npz files.")
+    print(f"FX9-5 LOAD ACCEPT combos={len(DATASETS)*len(args.methods)*len(SEEDS)} loadable={len(DATASETS)*len(args.methods)*len(SEEDS)*EXPECTED} per_combo={EXPECTED} bad=0 M4_global_aggregate_max_error<=1e-10", flush=True)
     return 0
 
 

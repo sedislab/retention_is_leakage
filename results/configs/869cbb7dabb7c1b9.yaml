@@ -1,0 +1,12 @@
+dataset: cub200
+method: M3
+method_config:
+  feature_dim: 768
+  local_epochs: 30
+  lr: 0.5
+  n_classes: 200
+  projection_strength: 1.0
+  subspace_rank: 8
+n_tasks: 10
+phase: FX9-4
+seed: 1

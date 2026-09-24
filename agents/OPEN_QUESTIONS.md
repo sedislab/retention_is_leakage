@@ -29,6 +29,18 @@ client-level privacy claim.*
 leakage: `−BWT` on task 1 at time T correlates with TPR@1%FPR for MIA on task-1 data from round-T
 artifacts. Target: Spearman ρ ≥ 0.5, p < 0.05, ≥8 methods × ≥3 datasets.*
 - Status: `OPEN`
+<!-- FX9 START -->
+- **FX9 final evidence supersedes earlier numerical claims below.**
+  cifar100: ratio 6.86834 [6.19464, 7.49258], lower_bound; interval for lower-bound statistic; not an upper bound on true ratio.
+  cub200: ratio 0.486871 [0.345576, 1.01581], point; interval for lower-bound statistic; not an upper bound on true ratio.
+  imagenet_r: ratio 7.90731 [7.49079, 8.31064], lower_bound; interval for lower-bound statistic; not an upper bound on true ratio.
+  m2_target dose=1: forgetting 0.135556 [0.108608, 0.162503], TPR 0.0245446 [0.0198782, 0.0292111].
+  m2_target dose=50: forgetting 0.0174074 [0.0083773, 0.0264375], TPR 0.0459488 [0.0401979, 0.0516997].
+  m5_hybrid_replay dose=1: forgetting 0.152815 [0.124848, 0.180781], TPR 0.0375091 [0.028433, 0.0465853].
+  m5_hybrid_replay dose=50: forgetting 0.00907407 [0.00122177, 0.0169264], TPR 0.0832856 [0.0599698, 0.106601].
+  Sources: results/decoupling_ratio.csv, results/fx9_dose_summary.csv. Status OPEN: seven CPU methods and two dose arms do not meet the full breadth of the original deciding test. Minus BWT measures forgetting; the old retention-strength label is withdrawn.
+<!-- FX9 END -->
+
 - Deciding test: the full audit (§5). **Empiricist's proposed upgrade: within-method dose–response
   over ~6 retention-strength levels on 2–3 methods** — adopt this; it is stronger and cheaper.
 - **Real A1 numbers now exist for 7/8+ methods on CIFAR-100** (`notes/2026-09-16_p3_a1_lira_results.md`,
@@ -319,7 +331,19 @@ with no auxiliary data.*
 *For analytic FCL with class-conditional Gram statistics and n ≤ 64 per class on frozen ViT-B/16,
 feature reconstruction reaches cosine similarity > 0.8 for a majority of samples; image-space
 reconstructions are visually identifiable.*
-- Status: `SUPPORTED` (re-specified curve — 2026-09-16; **original numeric threshold NOT met**)
+- Status: `SUPPORTED (reconstruction curve only; original threshold not established)`
+<!-- FX9 START -->
+- **FX9 final evidence supersedes earlier numerical claims below.**
+  cifar100, n=1, ref=clean_full: median trial-mean cosine 1 [1, 1]; trials=25.
+  cifar100, n=4, ref=clean_full: median trial-mean cosine 0.600158 [0.507064, 0.667171]; trials=25.
+  cifar100, n=16, ref=clean_full: median trial-mean cosine 0.463877 [0.447378, 0.519931]; trials=25.
+  cifar100, n=64, ref=clean_full: median trial-mean cosine 0.469909 [0.426691, 0.482513]; trials=25.
+  cub200, n=1, ref=clean_full: median trial-mean cosine 1 [1, 1]; trials=25.
+  cub200, n=4, ref=clean_full: median trial-mean cosine 0.761096 [0.733299, 0.821914]; trials=25.
+  cub200, n=16, ref=clean_full: median trial-mean cosine 0.676209 [0.632925, 0.696079]; trials=25.
+  Source: results/fig13_gram_inversion_summary.csv. The former five-trials caveat is superseded by 25 trials per feasible cell and 2000 median-bootstrap replicates. Trial-mean cosine is not a fraction of individual samples above 0.8; no image-space identifiability claim is established.
+<!-- FX9 END -->
+
 - Deciding test: run — `code/scripts/run_gram_inversion.py` on real CUB-200 + CIFAR-100 features
   (both `vit_base_patch16_224.augreg_in21k`), 195 rows, `results/fig13_gram_inversion.csv` +
   `results/fig13_anisotropy.csv`. Full writeup: `notes/2026-09-16_p3_fig13_h5.md`.
@@ -368,7 +392,23 @@ abandoning their anti-forgetting mechanism.*
 *At client-task-level (U2) ε = 1, final average accuracy within 5 points of the non-private analytic
 baseline and above every DP-SGD-based FCL baseline at equal ε, on CIFAR-100/10 and ImageNet-R/10 with
 frozen ViT-B/16.*
-- Status: `OPEN`
+- Status: `REFUTED`
+<!-- FX9 START -->
+- **FX9 final evidence supersedes earlier numerical claims below.**
+  CIFAR/U1 epsilon=1.0: empirical epsilon_lb=0; TPR@1%FPR=0.009547 (upper endpoint 0.0104263).
+  CIFAR/U1 epsilon=4.0: empirical epsilon_lb=0; TPR@1%FPR=0.00870412 (upper endpoint 0.00954563).
+  CIFAR/U1 epsilon=inf: empirical epsilon_lb=9.06368; TPR@1%FPR=0.871143 (upper endpoint 0.874032).
+  cifar100 U2 epsilon=1 utility 0.0147333 [-0.00489974, 0.0343664].
+  cub200 U2 epsilon=1 utility 0.00365828 [-0.000440658, 0.00775721].
+  imagenet_r U2 epsilon=1 utility 0.0046125 [0.00322818, 0.00599683].
+  Source: tables/tab08_dp_utility.csv; no DP-FedAvg comparator, so superiority remains untested. Cross-unit FX1 accounting is conditional on sensitivity.
+  cifar100 U2 epsilon=1 paired M9−M8 accuracy gap -0.868567 [-0.8882, -0.848934].
+  cub200 U2 epsilon=1 paired M9−M8 accuracy gap -0.867733 [-0.871882, -0.863585].
+  imagenet_r U2 epsilon=1 paired M9−M8 accuracy gap -0.630512 [-0.632302, -0.628722].
+  The within-five-points utility criterion is refuted when its paired gap interval lies below −0.05; the separate DP-baseline superiority comparison remains untested. Source: results/fx9_m9_gap_summary.csv.
+<!-- FX9 END -->
+
+
 - Deciding test: §5 sweeps, ~120 GPU-h.
 - Owner: Proposer · Blast radius: High (Paper B's constructive half)
 - Known objection (Red Team): the *non-private* gap between analytic FCL and prompt SOTA may already
@@ -377,7 +417,12 @@ frozen ViT-B/16.*
 ### H8 — The advantage widens with T
 *At T = 50 tasks, DP-SGD-based FCL under sequential U2 accounting is at chance while DP-Analytic-FCL
 is flat in T.*
-- Status: `OPEN`
+- Status: `CUT`
+<!-- FX9 START -->
+- **FX9 final evidence supersedes earlier numerical claims below.**
+  No DP baselines or deciding long-horizon baseline comparison delivered.
+<!-- FX9 END -->
+
 - Deciding test: long-horizon 50-task stream (§5.2), ~160 GPU-h.
 - Owner: Proposer · Blast radius: Medium-high (**this is the money plot for Paper B**)
 
@@ -422,9 +467,24 @@ systematically by artifact family, with F5/F8 showing no decay.*
 ### H11 — Secure aggregation does not help
 *Every attack in the suite that operates on `V_full` retains its effectiveness under secure
 aggregation, because it uses the aggregate broadcast rather than individual client updates.*
-- Status: `SUPPORTED, with an important split by artifact family` (2026-09-21) — the hypothesis as
-  literally stated ("every attack... retains its effectiveness") is **refuted for F2/F5** and
-  **supported for F1**; the honest finding is more interesting than either blanket answer.
+- Status: `REFUTED`
+<!-- FX9 START -->
+- **FX9 final evidence supersedes earlier numerical claims below.**
+  cifar100 m4_proto aggregate e=6 TPR 0.0576339 [0.0513525, 0.0661678].
+  cifar100 m4_proto global e=6 TPR 0.0576339 [0.0513525, 0.0661678].
+  cifar100 m8_analytic aggregate e=6 TPR 0.999186 [0.997571, 0.999919].
+  cifar100 m8_analytic global e=6 TPR 0.916505 [0.898898, 0.931272].
+  cub200 m4_proto aggregate e=6 TPR 0.832435 [0.807779, 0.857644].
+  cub200 m4_proto global e=6 TPR 0.832435 [0.807779, 0.857644].
+  cub200 m8_analytic aggregate e=6 TPR 1 [1, 1].
+  cub200 m8_analytic global e=6 TPR 1 [1, 1].
+  imagenet_r m4_proto aggregate e=6 TPR 0.239537 [0.215522, 0.26815].
+  imagenet_r m4_proto global e=6 TPR 0.239537 [0.215522, 0.26815].
+  imagenet_r m8_analytic aggregate e=6 TPR 1 [0.999787, 1].
+  imagenet_r m8_analytic global e=6 TPR 0.984134 [0.978064, 0.990103].
+  Source: results/fx3_views_summary.csv. F1 invariance is by construction; the blanket no-help claim is refuted as a universal cross-family statement.
+<!-- FX9 END -->
+
 - **A3/A5/A6 already have real secure-agg findings** (A3/A6 survive against `ledger.aggregate_view()`,
   A5 correctly does not — client attribution needs per-client records that secure aggregation removes
   by construction). **A4 (built 2026-09-17) is secure-agg-native by design** — it was built against
@@ -458,12 +518,16 @@ aggregation, because it uses the aggregate broadcast rather than individual clie
 ### H13 — "Your clients are a Dirichlet artifact" (FIG18, Camelyon17)
 *The retention-leakage decoupling effect (C1/H2) is a synthetic-client-partition artifact and would
 not appear (or would be weaker) under a real, natural federation.*
-- Status: `OPEN` (2026-09-23, post-FIG18-v2 matched-5-client redesign) — **the original `REFUTED`
-  verdict (2026-09-21) was itself built on a confounded comparison and must not be cited.** The pilot's
-  "natural" arm used `n_clients=1` (the whole hospital as one client) against the "dirichlet" arm's
-  `n_clients=10` — two variables changed at once (partition STRATEGY and client COUNT), so the observed
-  "natural leaks more" effect could not be attributed to either alone. `08_FIX_PLAN.md` itself flagged
-  this (§11: "H13 → OPEN (confounded; the natural arm had 1 client). Update it after FIG18 v2.").
+- Status: `OPEN`
+<!-- FX9 START -->
+- **FX9 final evidence supersedes earlier numerical claims below.**
+  natural, e=0: TPR@1%FPR 0.0214851 [0.0116117, 0.0313585]; normalized accuracy 1; clients=5.
+  natural, e=4: TPR@1%FPR 0.0343842 [0.0217884, 0.04698]; normalized accuracy 1.04683; clients=5.
+  dirichlet, e=0: TPR@1%FPR 0.0230728 [0.0110203, 0.0351253]; normalized accuracy 1; clients=5.
+  dirichlet, e=4: TPR@1%FPR 0.048681 [0.0180992, 0.0792629]; normalized accuracy 0.988107; clients=5.
+  Source: results/fig18_natural_federation.csv. Preserved matched-client slide-group experiment; hospital-as-client question remains open.
+<!-- FX9 END -->
+
 - **CORRECTION (2026-09-23, FIG18 v2, the matched-5-client redesign)**: reran with BOTH arms at
   `n_clients=5` (matching the 5 real hospitals) — **natural** now groups by physical microscopy slide
   (`p3fcl.get_data.prepare_camelyon17()` records `slide` per sample from `Camelyon17Dataset`'s own

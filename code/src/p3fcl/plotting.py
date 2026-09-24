@@ -4,11 +4,16 @@ rather than a re-run (CLAUDE.md non-negotiable #3).
 """
 from __future__ import annotations
 
+import csv
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
 
 matplotlib.use("Agg")
+matplotlib.rcParams.update({"font.size": 7, "axes.labelsize": 7, "axes.titlesize": 7,
+                            "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+                            "pdf.fonttype": 42})
 
 from .artifacts import Family  # noqa: E402
 
@@ -63,11 +68,49 @@ def latex_escape(value) -> str:
 def column_width(kind: str = "single") -> float:
     """Figure width in inches matching a typical ICLR/USENIX column, so font sizes can be checked at
     final printed width rather than by zooming in an editor."""
-    return {"single": 3.4, "double": 7.0}[kind]
+    return {"single": 3.4, "double": 5.5}[kind]
 
 
 def save(fig, stem: str, out_dir="figs", dpi: int = 200) -> None:
+    from matplotlib.text import Text
+
+    from . import provenance
+    from .figure_sources import FIGURE_SOURCES
+    if fig._suptitle is not None:
+        fig._suptitle.remove()
+        fig._suptitle = None
+    if fig.get_figwidth() > 5.5:
+        fig.set_size_inches(5.5, fig.get_figheight(), forward=True)
+    for text in fig.findobj(Text):
+        if text.get_fontsize() < 7:
+            text.set_fontsize(7)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_dir / f"{stem}.pdf")
     fig.savefig(out_dir / f"{stem}.png", dpi=dpi)
+    manifest = provenance.run_manifest({"phase": "FX9-8", "figure": stem,
+                                        "sources": FIGURE_SOURCES[stem] + ["method_descriptions.csv"],
+                                        "width_inches": float(fig.get_figwidth()), "height_inches": float(fig.get_figheight()),
+                                        "min_fontsize": float(min(t.get_fontsize() for t in fig.findobj(Text)))}, seed=0)
+    provenance.finalize(manifest, [out_dir / f"{stem}.pdf", out_dir / f"{stem}.png"])
+
+
+@lru_cache(maxsize=1)
+def method_descriptions():
+    path = Path(__file__).resolve().parents[3]/"results/method_descriptions.csv"
+    with path.open() as f:
+        return {r["method_id"]: r for r in csv.DictReader(f)}
+
+
+def display_name(method, short=False):
+    rows = method_descriptions()
+    key = method if method in rows else next((k for k in rows if k.split("_")[0].upper() == method), None)
+    if key is None:
+        raise KeyError(f"No display name in method_descriptions.csv: {method}")
+    return rows[key]["display_short" if short else "display_name"]
+
+
+def method_style(method):
+    methods = [m for m in method_descriptions() if m != "protocol"]
+    colors = ["#000000", "#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#666666"]
+    return dict(color=colors[methods.index(method)], marker=["o", "s", "^", "D", "v", "P", "X", "*"][methods.index(method)])

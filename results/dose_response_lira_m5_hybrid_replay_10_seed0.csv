@@ -1,0 +1,2 @@
+dataset,method,knob_name,knob_value,seed,tpr1,tpr01,ci_lo,ci_hi,auc,n_targets
+cifar100,m5_hybrid_replay,buffer_size_per_class,10,0,0.06567222006974041,0.02247191011235955,0.06096861113093219,0.07062257715849228,0.6207990042819093,200

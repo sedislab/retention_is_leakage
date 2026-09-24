@@ -1,0 +1,10 @@
+dataset: cifar100
+hypotheses:
+- H2
+- H6
+phase: FX9-3
+seeds:
+- 0
+- 1
+- 2
+tuning: "train stratified 90/10; rho=.5,1,2 \xD7 lr=.1,.5; test never used for selection"

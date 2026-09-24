@@ -1,0 +1,5 @@
+dataset: imagenet_r
+method: m0_fedavg
+purpose: FX2 decoupling ratio (claim C1, H2)
+seed: 0
+view: full

@@ -1,6 +1,7 @@
 # Repo-root Makefile — the commands named in CLAUDE.md. setup/test/smoke delegate into code/
 # (the package); figures/verify/paper operate on the repo-root analysis/, results/, figs/, tables/,
 # paper/ directories, per CLAUDE.md's Layout.
+SHELL := /bin/bash
 .PHONY: setup test smoke figures verify paper
 
 setup:
@@ -18,11 +19,11 @@ figures:
 		[ -e "$$f" ] || continue; \
 		echo "-- $$f --"; python "$$f" || exit 1; \
 	done
-	@echo "figures: no analysis/fig*.py or analysis/tab*.py scripts exist yet (Phase P4+)."
+	@echo "figures: all current analysis scripts completed."
 
 verify:
 	@module load python/3.10.4 >/dev/null 2>&1; source envs/p3fcl/bin/activate; \
-	python analysis/verify_provenance.py
+	python code/scripts/check_fx9_consistency.py && python analysis/verify_provenance.py
 
 paper:
 	@cd paper && latexmk -pdf main.tex

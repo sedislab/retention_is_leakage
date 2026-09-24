@@ -61,12 +61,13 @@ def main() -> int:
 
     ax_acc.axhline(1.0, color="0.7", linewidth=0.5, linestyle="--")
     ax_acc.set_ylabel("accuracy on task $k$\n(normalised to elapsed=0)", fontsize=7)
-    ax_acc.set_title("FIG18 v2 (PILOT) — Camelyon17: natural vs.\nDirichlet client partition, matched n=5, M0", fontsize=8)
-    ax_acc.legend(fontsize=6, loc="lower left")
+    fig.text(.5,.005,"clients = slide groups within each hospital task (natural)\nvs Dirichlet (β = 0.5), 5 clients\n" + plotting.display_name("m0_fedavg", short=True) + ", 5k-patch subsample",ha="center",va="bottom",fontsize=7)
+
+    ax_acc.legend(fontsize=7, loc="lower left")
     ax_leak.set_ylabel("A1 TPR@1%FPR", fontsize=7)
     ax_leak.set_xlabel("elapsed tasks ($T - k$), 5 hospitals")
     ax_leak.axhline(0.01, color="0.7", linewidth=0.5, linestyle="--")
-    fig.tight_layout()
+    fig.tight_layout(rect=(0,.09,1,1))
     plotting.save(fig, "fig18_natural_federation", out_dir=REPO_ROOT / "figs")
     print("wrote figs/fig18_natural_federation.{pdf,png}")
     print("REMINDER: M0-only PILOT (1,024-shadow budget, ~5k-image subsample) -- see PAPER_BRIEFING.md")

@@ -3,11 +3,7 @@
 cached features. Writes a small per-run JSON to `runs/utility_baseline/` (collected later by
 `collect_tab05.py` into `results/tab05_utility_baselines.csv`), with a provenance-stamped manifest.
 
-Features are z-score standardised (fit on the train split) before being handed to any method. This
-is a per-run *modelling* choice for these plain-gradient-descent baselines' numerical stability, not
-a change to the stored cache — `features.py` stores unnormalised vectors precisely so this kind of
-decision stays a method/runner concern (RESEARCH_PLAN.md, `06_PACKAGE_SPEC.md §4`), not baked into
-extraction.
+FX9 uses raw cached features and exactly the shadow runner configuration plus the FX9 gate.
 
 Usage:
   python scripts/run_utility_baseline.py --method M0 --dataset cifar100 --n_tasks 10 --seed 0
@@ -25,28 +21,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "code" / "src"))
 
 from p3fcl import features, provenance, sim, streams  # noqa: E402
-from p3fcl.methods.m0_fedavg import FedAvgSequential  # noqa: E402
-from p3fcl.methods.m1_glfc import GLFC  # noqa: E402
-from p3fcl.methods.m2_target import TARGET  # noqa: E402
-from p3fcl.methods.m3_fot import FOT  # noqa: E402
-from p3fcl.methods.m4_proto import PrototypeFCL  # noqa: E402
-from p3fcl.methods.m5_hybrid_replay import HybridReplay  # noqa: E402
-from p3fcl.methods.m8_analytic import AnalyticFCL  # noqa: E402
+from p3fcl.experiment import METHODS, attacked_method_config  # noqa: E402
+from p3fcl.shadow_runner import METHOD_REGISTRY as SHADOW_METHODS  # noqa: E402
 
 BACKBONE = "vit_base_patch16_224.augreg_in21k"
 FEATURES_DIR = REPO_ROOT / "features"
-OUT_DIR = REPO_ROOT / "runs" / "utility_baseline"
+OUT_DIR = REPO_ROOT / "runs" / "fx9_utility_baseline"
 
-# (method_id, class, default hyperparameters — one representative setting, not a dose-response sweep)
-METHOD_REGISTRY = {
-    "M0": (FedAvgSequential, {"local_epochs": 30, "lr": 0.5}),
-    "M1": (GLFC, {"local_epochs": 30, "lr": 0.5, "exemplar_budget": 10, "distillation_weight": 1.0, "temperature": 2.0}),
-    "M2": (TARGET, {"local_epochs": 30, "lr": 0.5, "replay_ratio": 1.0, "n_synthetic_per_class": 20}),
-    "M3": (FOT, {"local_epochs": 30, "lr": 0.5, "subspace_rank": 8, "projection_strength": 1.0}),
-    "M4": (PrototypeFCL, {"prototype_momentum": 0.5, "release_counts": True}),
-    "M5": (HybridReplay, {"local_epochs": 30, "lr": 0.5, "buffer_size_per_class": 10}),
-    "M8": (AnalyticFCL, {"ridge_lambda": 1.0}),
-}
+METHOD_REGISTRY = {m.split("_")[0].upper(): m for m in METHODS}
 
 # per-dataset stream spec: n_classes, n_clients, beta, domain (None for class-incremental)
 DATASET_SPEC = {
@@ -55,15 +37,6 @@ DATASET_SPEC = {
     "cub200": {"n_classes": 200, "n_clients": 10, "beta": 0.5, "domain": False},
     "camelyon17": {"n_classes": 2, "n_clients": 1, "beta": 0.5, "domain": True},
 }
-
-
-def _standardize(X_train, *others):
-    mean = X_train.mean(axis=0, keepdims=True)
-    std = X_train.std(axis=0, keepdims=True) + 1e-6
-    out = [(X_train - mean) / std]
-    for X in others:
-        out.append((X - mean) / std)
-    return out
 
 
 def main() -> int:
@@ -91,7 +64,6 @@ def main() -> int:
         domain_field = np.array([by_wilds_idx[int(i)] for i in cache["ids"]])
         domain_field_test = np.array([by_wilds_idx[int(i)] for i in test_cache["ids"]])
 
-    X_std, X_test_std = _standardize(X, X_test)
     idx = np.arange(len(y))
     stream = streams.build_stream(
         y, idx, n_tasks=args.n_tasks, n_clients=spec["n_clients"], beta=spec["beta"],
@@ -106,14 +78,17 @@ def main() -> int:
     eval_id_lists = streams.task_eval_sets(
         y_test, idx_test, n_tasks=n_tasks_actual, seed=args.seed, domain_field_eval=domain_field_test,
     )
-    eval_sets = [(X_test_std[ids], y_test[ids]) for ids in eval_id_lists]
+    eval_sets = [(X_test[ids], y_test[ids]) for ids in eval_id_lists]
 
-    cls, base_cfg = METHOD_REGISTRY[args.method]
-    cfg = {**base_cfg, "n_classes": spec["n_classes"], "feature_dim": X_std.shape[1]}
+    method_id = METHOD_REGISTRY[args.method]
+    cls = SHADOW_METHODS[method_id][0]
+    cfg = attacked_method_config(method_id, spec["n_classes"], X.shape[1], args.dataset)
     method = cls(cfg)
-    result = sim.run(method, X_std, y, stream, seed=args.seed, eval_sets=eval_sets)
+    result = sim.run(method, X, y, stream, seed=args.seed, eval_sets=eval_sets)
 
     record = {
+        "phase": "FX9",
+        "method_config": cfg,
         "method": args.method,
         "dataset": args.dataset,
         "n_tasks_requested": args.n_tasks,
@@ -135,7 +110,7 @@ def main() -> int:
     tmp_path.write_text(json.dumps(record))
     tmp_path.replace(out_path)
 
-    config = {"seed": args.seed, "method": args.method, "dataset": args.dataset, "n_tasks": args.n_tasks}
+    config = {"phase": "FX9-4", "method_config": cfg, "seed": args.seed, "method": args.method, "dataset": args.dataset, "n_tasks": args.n_tasks}
     manifest = provenance.run_manifest(config, seed=args.seed)
     provenance.finalize(manifest, [out_path])
     return 0

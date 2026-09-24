@@ -26,7 +26,7 @@ CHUNK=128
 IDX="${PBS_ARRAY_INDEX:-0}"
 START=$(( IDX * CHUNK ))
 SEED="${SEED:-0}"
-OUT_DIR=/data/islamm/retention_leakage/shadows/"${DATASET}"/"${METHOD}"/secure_agg/seed"${SEED}"
+OUT_DIR=$(python -m p3fcl.paths --dataset "$DATASET" --method "$METHOD" --seed "${SEED:-0}" --legacy --variant secure_agg)
 python -m p3fcl.cli shadows \
   --config configs/attack_lira.yaml \
   --dataset "${DATASET}" --method "${METHOD}" \

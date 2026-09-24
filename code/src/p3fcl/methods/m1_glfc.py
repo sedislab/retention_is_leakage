@@ -24,6 +24,8 @@ FX4b/c fixes (08_FIX_PLAN.md R2, R3), replacing the pre-fix version:
 - **`touched` no longer accumulates `_all_touched_ever`.** Reading a broadcast model (`W_old`) is
   post-processing, not a fresh read of raw data (Lemma 8) — `touched` for the MODEL_DELTA record is
   exactly this round's shard plus whatever buffer ids fed this round's local training.
+
+FX9 local CE gives current and replay sets separate means, with replay_weight=1.
 """
 from __future__ import annotations
 
@@ -31,6 +33,7 @@ import numpy as np
 
 from ..artifacts import ArtifactRecord, Family
 from .base import FCLMethod, MethodSpec
+from .replay import balanced_gradient
 
 
 def _softmax(z: np.ndarray, temperature: float = 1.0) -> np.ndarray:
@@ -55,6 +58,7 @@ class GLFC(FCLMethod):
         self.d = int(config["feature_dim"])
         self.local_epochs = int(config.get("local_epochs", 1))
         self.lr = float(config.get("lr", 0.5))
+        self.replay_weight = float(config.get("replay_weight", 1.0))
         self.exemplar_budget = int(config.get("exemplar_budget", 5))
         self.distillation_weight = float(config.get("distillation_weight", 1.0))
         self.temperature = float(config.get("temperature", 2.0))
@@ -81,14 +85,11 @@ class GLFC(FCLMethod):
     def _local_train(self, W0, X_task, y_task, X_buf, y_buf, W_old, old_classes: list) -> np.ndarray:
         W = W0.copy()
         X_all = np.concatenate([X_task, X_buf], axis=0) if X_buf is not None else X_task
-        y_all = np.concatenate([y_task, y_buf], axis=0) if y_buf is not None else y_task
-        n = len(y_all)
-        Y = np.zeros((n, self.n_classes))
-        Y[np.arange(n), y_all] = 1.0
+        n = len(X_all)
         old_cols = np.array(old_classes, dtype=int) if old_classes else None
         for _ in range(self.local_epochs):
             logits = X_all @ W
-            grad = X_all.T @ (_softmax(logits) - Y) / n
+            grad = balanced_gradient(W, X_task, y_task, X_buf, y_buf, self.replay_weight)
             if W_old is not None and self.distillation_weight > 0 and old_cols is not None and len(old_cols) > 0:
                 # KD restricted to old-class columns on BOTH sides: a sub-softmax over just those
                 # columns, not the full-class softmax sliced afterward -- so its gradient touches
@@ -123,6 +124,7 @@ class GLFC(FCLMethod):
                     payload=delta, touched=touched_delta, n_touched=len(touched_delta),
                     passes_over_data=self.local_epochs,
                     meta={
+                        "replay_weight": self.replay_weight,
                         "distillation_weight": self.distillation_weight, "temperature": self.temperature,
                         "agg_weight": float(weight),
                     },

@@ -1,0 +1,4 @@
+backbone: fakebackbone
+dataset: faketest
+probe: logistic_regression
+seed: 0

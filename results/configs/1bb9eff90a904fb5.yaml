@@ -1,0 +1,3 @@
+hypothesis: H12
+phase: FX9
+source: runs/fx9_utility_baseline/<method>_<dataset>_t10_s<seed>.json
