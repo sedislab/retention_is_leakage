@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-23T01:04:36.776910+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/fx4_lag_diagnostic.csv",
+  "output": "<repo>/results/fx4_lag_diagnostic.csv",
   "utc_end": "2026-09-23T01:04:42.318193+00:00",
   "wall_seconds": 5.541283
 }

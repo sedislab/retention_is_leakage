@@ -7,10 +7,10 @@
   "pbs_array_index": "10",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T03:11:30.937779+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/a1_lira_fixedk_summary_cub200_m4_proto_global.csv",
+  "output": "<repo>/results/a1_lira_fixedk_summary_cub200_m4_proto_global.csv",
   "utc_end": "2026-09-24T03:20:32.258786+00:00",
   "wall_seconds": 541.321007
 }

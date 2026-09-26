@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T01:30:30.690014+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/fig05_accountant_m0_fedavg.csv",
+  "output": "<repo>/results/fig05_accountant_m0_fedavg.csv",
   "utc_end": "2026-09-24T01:30:35.750985+00:00",
   "wall_seconds": 5.060971
 }

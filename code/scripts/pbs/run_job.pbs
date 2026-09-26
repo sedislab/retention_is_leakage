@@ -4,10 +4,10 @@
 #PBS -l select=1:ncpus=4:mem=16gb
 #PBS -l walltime=02:00:00
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/logs/
+#PBS -o logs/
 set -euo pipefail
 
-# Generic job runner (08_FIX_PLAN.md §0.2): submit with `-v JOBFILE=/data/islamm/retention_leakage/
+# Generic job runner (08_FIX_PLAN.md §0.2): submit with `-v JOBFILE=$PBS_O_WORKDIR/
 # build/jobs/<name>.sh` -- avoids the comma-splitting problem `-v` has with multi-value job specs.
 # JOBFILE must be a self-contained bash script (its own module load / venv activate / cd / python
 # invocation) so this template stays generic across every FX step that just needs "run this one

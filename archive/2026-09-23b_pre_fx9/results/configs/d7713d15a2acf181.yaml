@@ -1,3 +1,0 @@
-dataset: cifar100
-purpose: P4 real accuracy matrix per method x seed (FIG01), FX4a test-split fix
-seed: 0

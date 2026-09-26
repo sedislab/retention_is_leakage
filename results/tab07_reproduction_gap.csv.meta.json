@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T01:34:15.046930+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/tab07_reproduction_gap.csv",
+  "output": "<repo>/results/tab07_reproduction_gap.csv",
   "utc_end": "2026-09-24T01:34:16.488095+00:00",
   "wall_seconds": 1.441165
 }

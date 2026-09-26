@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T01:34:25.727852+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/retention_acc_cifar100_m4_proto_full.csv",
+  "output": "<repo>/results/retention_acc_cifar100_m4_proto_full.csv",
   "utc_end": "2026-09-24T01:34:27.350281+00:00",
   "wall_seconds": 1.622429
 }

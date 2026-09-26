@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """P4 deliverable: the real (full-population, non-shadow) accuracy matrix per (method, seed) on the
 same stream A1's shadows perturb -- the accuracy half of FIG01's decoupling comparison. Cheap (one
-real federation per method x seed, not thousands of shadows); still goes through qsub per Kodiak
+real federation per method x seed, not thousands of shadows); still goes through qsub per cluster
 policy since it is real training on real data, however small.
 
 Usage: `run_accuracy_matrix.py [dataset]` (default `cifar100`) -- `n_classes`/`feature_dim` are read

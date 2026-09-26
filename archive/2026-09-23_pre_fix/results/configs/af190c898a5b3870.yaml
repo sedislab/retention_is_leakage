@@ -1,4 +1,0 @@
-backbone: vit_base_patch14_dinov2.lvd142m
-dataset: imagenet_r
-probe: logistic_regression
-seed: 0

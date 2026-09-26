@@ -7,10 +7,10 @@
   "pbs_array_index": "18",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T01:22:21.054520+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/accuracy_matrix_imagenet_r_m4_proto.csv",
+  "output": "<repo>/results/accuracy_matrix_imagenet_r_m4_proto.csv",
   "utc_end": "2026-09-24T01:28:03.347323+00:00",
   "wall_seconds": 342.292803
 }

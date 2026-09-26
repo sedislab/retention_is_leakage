@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T04:07:47.733907+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/fig01_decoupling.csv",
+  "output": "<repo>/results/fig01_decoupling.csv",
   "utc_end": "2026-09-24T04:07:49.144738+00:00",
   "wall_seconds": 1.410831
 }

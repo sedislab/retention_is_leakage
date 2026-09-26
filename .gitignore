@@ -35,4 +35,25 @@ paper/**/*.fls
 paper/**/*.fdb_latexmk
 paper/**/*.synctex.gz
 
-# keep: results/*.csv, results/*.meta.json, results/RUN_LOG.jsonl, code/, build/, agents/, notes/
+# keep: results/*.csv, results/*.meta.json, results/RUN_LOG.jsonl, code/, analysis/, figs/, tables/, env/
+
+# ---------------------------------------------------------------------------------------------
+# Submission branch: internal project-management, assistant-tooling and working-state files are
+# not part of the released artifact. They stay on the author's disk; they are simply not tracked.
+# ---------------------------------------------------------------------------------------------
+# assistant / agent configuration and instructions
+CLAUDE.md
+.claude/
+agents/
+# internal planning docs, session state, superseded snapshots, working notes
+RESEARCH_PLAN.md
+build/
+notes/
+archive/
+# manuscript sources are submitted separately through the review system
+paper/
+# raw per-shadow bookkeeping (138k tiny JSON files, regenerable; the .npz payloads are already ignored)
+shadows_v2/
+shadows_v3/
+# local tool caches
+.ruff_cache/

@@ -7,10 +7,10 @@
   "pbs_array_index": "17",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T03:11:27.863338+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/fig02_halflife_imagenet_r_m5_hybrid_replay_full.csv",
+  "output": "<repo>/results/fig02_halflife_imagenet_r_m5_hybrid_replay_full.csv",
   "utc_end": "2026-09-24T03:21:01.258372+00:00",
   "wall_seconds": 573.395034
 }

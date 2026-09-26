@@ -7,10 +7,10 @@
   "pbs_array_index": "29",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-23T06:33:03.340275+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/a1_lira_pertask_imagenet_r_m8_analytic_seed0_global.npz",
+  "output": "<repo>/results/a1_lira_pertask_imagenet_r_m8_analytic_seed0_global.npz",
   "utc_end": "2026-09-23T06:33:04.925067+00:00",
   "wall_seconds": 1.584792
 }

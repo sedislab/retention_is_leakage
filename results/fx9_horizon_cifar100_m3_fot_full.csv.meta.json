@@ -7,10 +7,10 @@
   "pbs_array_index": "1",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T01:49:39.705786+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/fx9_horizon_cifar100_m3_fot_full.csv",
+  "output": "<repo>/results/fx9_horizon_cifar100_m3_fot_full.csv",
   "utc_end": "2026-09-24T01:51:11.528591+00:00",
   "wall_seconds": 91.822805
 }

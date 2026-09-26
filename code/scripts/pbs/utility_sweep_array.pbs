@@ -5,13 +5,13 @@
 #PBS -l walltime=01:00:00
 #PBS -J 0-12
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/logs/
+#PBS -o logs/
 set -uo pipefail
-cd /data/islamm/retention_leakage/code
+cd $PBS_O_WORKDIR/code
 
 module purge
 module load python/3.10.4
-source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+source $PBS_O_WORKDIR/envs/p3fcl/bin/activate
 export OMP_NUM_THREADS=4
 export MKL_NUM_THREADS=4
 
@@ -23,7 +23,7 @@ END=$(( START + CHUNK - 1 ))
 for i in $(seq "$START" "$END"); do
   CFG=$(python scripts/grid_index.py "$i" 2>/dev/null) || { echo "index $i out of range, done"; break; }
   read -r METHOD DATASET NTASKS SEED <<< "$CFG"
-  OUT_FILE="/data/islamm/retention_leakage/runs/utility_baseline/${METHOD}_${DATASET}_t${NTASKS}_s${SEED}.json"
+  OUT_FILE="$PBS_O_WORKDIR/runs/utility_baseline/${METHOD}_${DATASET}_t${NTASKS}_s${SEED}.json"
   if [ -f "$OUT_FILE" ]; then
     echo "skip (already done): $OUT_FILE"
     continue

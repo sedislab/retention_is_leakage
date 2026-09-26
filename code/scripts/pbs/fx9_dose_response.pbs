@@ -5,13 +5,13 @@
 #PBS -l walltime=04:00:00
 #PBS -J 0-287%16
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/build/logs/
+#PBS -o logs/
 set -euo pipefail
-cd /data/islamm/retention_leakage/code
+cd $PBS_O_WORKDIR/code
 
 module purge
 module load python/3.10.4
-source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+source $PBS_O_WORKDIR/envs/p3fcl/bin/activate
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
@@ -22,7 +22,7 @@ export OPENBLAS_NUM_THREADS=1
 # workers -- the worst case, lower levels should be cheaper); a 64-shadow chunk should cost well under
 # an hour even at the worst-case rate (M2: 64*8.39s ~= 9 min), so 1h is generous headroom, not a
 # measured requirement -- widen it if the pilot says otherwise.
-MANIFEST=/data/islamm/retention_leakage/build/waves/fx9_dose_response.tsv
+MANIFEST=$PBS_O_WORKDIR/build/waves/fx9_dose_response.tsv
 IDX="${PBS_ARRAY_INDEX:-0}"
 LINE=$(( IDX + 2 ))
 ROW=$(sed -n "${LINE}p" "$MANIFEST")

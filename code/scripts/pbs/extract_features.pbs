@@ -4,20 +4,20 @@
 #PBS -l select=1:ncpus=8:ngpus=1:mem=64gb
 #PBS -l walltime=08:00:00
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/logs/
+#PBS -o logs/
 set -euo pipefail
-cd /data/islamm/retention_leakage/code
+cd $PBS_O_WORKDIR/code
 
 module purge
-module load python/3.10.4 cuda/12.9   # match CUDA to the driver — see build/01_KODIAK.md §2
-source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
-export HF_HOME=/data/islamm/retention_leakage/hf
-export TORCH_HOME=/data/islamm/retention_leakage/torch
+module load python/3.10.4 cuda/12.9   # match CUDA to the driver — see env/requirements-gpu.txt
+source $PBS_O_WORKDIR/envs/p3fcl/bin/activate
+export HF_HOME=$PBS_O_WORKDIR/hf
+export TORCH_HOME=$PBS_O_WORKDIR/torch
 export OMP_NUM_THREADS=8
 
 python -m p3fcl.cli extract \
   --config configs/base.yaml \
   --dataset "${DATASET}" --backbone "${BACKBONE}" \
   --splits train,test,ref \
-  --out /data/islamm/retention_leakage/features \
+  --out $PBS_O_WORKDIR/features \
   --batch-size 256 --amp

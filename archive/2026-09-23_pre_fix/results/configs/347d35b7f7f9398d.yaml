@@ -1,4 +1,0 @@
-dataset: cub200
-method: M4
-n_tasks: 10
-seed: 2

@@ -2,7 +2,7 @@
 """FX8 (`08_FIX_PLAN.md` §10, C2 dose-response rerun): real (non-shadow) accuracy/BWT per
 (method, knob_value, seed) on CIFAR-100's held-out test split, via `eval_sets` (FX4a's fix -- the old
 pilot's `_run_accuracy` used `bwt_train` as a stopgap, explicitly not to be cited). Cheap (one real
-federation per method x level x seed, not shadows); still goes through qsub per Kodiak policy since
+federation per method x level x seed, not shadows); still goes through qsub per cluster policy since
 it is real training, however small. Independent of the (much more expensive) shadow generation --
 can run before, during, or after it.
 

@@ -3,8 +3,8 @@
 #PBS -l select=1:ncpus=1:mem=8gb
 #PBS -l walltime=24:00:00
 #PBS -q batch
-#PBS -o build/logs/
-#PBS -e build/logs/
+#PBS -o logs/
+#PBS -e logs/
 #PBS -j oe
 
 # Pre-freeze pass (human request, 2026-09-24): FIG02 label-collision fix, FIG08 axis-break fix,
@@ -13,7 +13,7 @@
 # real (non-shadow) federation per (method, dataset, seed), same as run_utility_baseline.py.
 
 set -euo pipefail
-cd /data/islamm/retention_leakage
+cd $PBS_O_WORKDIR
 module load python/3.10.4 >/dev/null 2>&1
 source envs/p3fcl/bin/activate
 export PYTHONPATH=code/src:code/scripts:${PYTHONPATH:-}

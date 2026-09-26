@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T17:50:33.027457+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/figs/fig_a6_property_inference.png",
+  "output": "<repo>/figs/fig_a6_property_inference.png",
   "utc_end": "2026-09-24T17:50:34.805908+00:00",
   "wall_seconds": 1.778451
 }

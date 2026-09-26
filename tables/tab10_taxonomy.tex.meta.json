@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T17:50:41.903042+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/tables/tab10_taxonomy.tex",
+  "output": "<repo>/tables/tab10_taxonomy.tex",
   "utc_end": "2026-09-24T17:50:43.473215+00:00",
   "wall_seconds": 1.570173
 }

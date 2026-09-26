@@ -7,10 +7,10 @@
   "pbs_array_index": "0",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T03:11:13.771875+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/a1_lira_pertask_cifar100_m1_glfc_seed1_full.csv",
+  "output": "<repo>/results/a1_lira_pertask_cifar100_m1_glfc_seed1_full.csv",
   "utc_end": "2026-09-24T03:11:15.204076+00:00",
   "wall_seconds": 1.432201
 }

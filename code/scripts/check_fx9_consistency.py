@@ -271,7 +271,9 @@ def main():
         for name in FIGURE_SOURCES[pdf.stem] + ["method_descriptions.csv"]:
             assert pdf.stat().st_mtime_ns >= (ROOT / "results" / name).stat().st_mtime_ns, (pdf, name)
     assert len(pdfs) == len(FIGURE_SOURCES)
-    assert len((ROOT / "paper/PAPER_BRIEFING.md").read_text().splitlines()) <= 400
+    briefing = ROOT / "paper/PAPER_BRIEFING.md"
+    if briefing.exists():  # internal document; not part of the released tree
+        assert len(briefing.read_text().splitlines()) <= 400
     print(
         f"FX9 CONSISTENCY figure_pdfs={len(pdfs)} stale_figures=0 max_width=5.5 min_font=7 PASS", flush=True
     )

@@ -1,4 +1,0 @@
-dataset: camelyon17
-method: M3
-n_tasks: 5
-seed: 1

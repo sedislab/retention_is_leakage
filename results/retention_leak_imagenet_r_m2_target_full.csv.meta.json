@@ -7,10 +7,10 @@
   "pbs_array_index": "13",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T03:11:24.751651+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/retention_leak_imagenet_r_m2_target_full.csv",
+  "output": "<repo>/results/retention_leak_imagenet_r_m2_target_full.csv",
   "utc_end": "2026-09-24T03:20:25.611777+00:00",
   "wall_seconds": 540.860126
 }

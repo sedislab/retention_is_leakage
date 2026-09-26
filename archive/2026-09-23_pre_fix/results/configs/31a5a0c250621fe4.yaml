@@ -1,8 +1,0 @@
-calibration_frac: 0.8
-datasets:
-- imagenet_r
-methods:
-  imagenet_r:
-  - m1_glfc
-purpose: FIG16 log-log ROC curves, seed=0, elapsed=0, trajectory ablation
-seed: 0

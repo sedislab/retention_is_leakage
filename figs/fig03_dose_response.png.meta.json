@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T17:49:38.057077+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/figs/fig03_dose_response.png",
+  "output": "<repo>/figs/fig03_dose_response.png",
   "utc_end": "2026-09-24T17:49:41.073229+00:00",
   "wall_seconds": 3.016152
 }

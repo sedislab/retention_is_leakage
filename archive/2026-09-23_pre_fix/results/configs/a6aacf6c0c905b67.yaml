@@ -1,5 +1,0 @@
-dataset: cifar100
-images_per_class_cap: 20
-method: M6
-n_tasks: 2
-seed: 0

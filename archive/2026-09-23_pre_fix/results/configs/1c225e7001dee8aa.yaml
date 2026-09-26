@@ -1,5 +1,0 @@
-amp: true
-backbone: vit_base_patch16_224.augreg_in21k
-batch_size: 256
-dataset: camelyon17
-seed: 0

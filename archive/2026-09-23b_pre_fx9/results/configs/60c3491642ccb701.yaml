@@ -1,4 +1,0 @@
-backbone: vit_base_patch14_dinov2.lvd142m
-dataset: camelyon17
-probe: logistic_regression
-seed: 0

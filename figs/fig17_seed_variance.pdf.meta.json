@@ -7,10 +7,10 @@
   "pbs_array_index": null,
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T17:50:23.414541+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/figs/fig17_seed_variance.pdf",
+  "output": "<repo>/figs/fig17_seed_variance.pdf",
   "utc_end": "2026-09-24T17:50:24.880611+00:00",
   "wall_seconds": 1.46607
 }

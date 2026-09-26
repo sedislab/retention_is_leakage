@@ -7,10 +7,10 @@
   "pbs_array_index": "25",
   "python": "3.10.4",
   "numpy": "1.26.4",
-  "user": "islamm",
+  "user": "anonymous",
   "utc_start": "2026-09-24T04:06:55.971989+00:00",
   "torch": "2.5.1+cu121",
-  "output": "/data/islamm/retention_leakage/results/dose_response_lira_m2_target_5_seed1.csv",
+  "output": "<repo>/results/dose_response_lira_m2_target_5_seed1.csv",
   "utc_end": "2026-09-24T04:06:59.711175+00:00",
   "wall_seconds": 3.739186
 }

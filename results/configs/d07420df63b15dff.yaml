@@ -1,11 +1,11 @@
 hypothesis: H1
 phase: FX9
 sources:
-- /data/islamm/retention_leakage/results/fig05_accountant_m0_fedavg.csv
-- /data/islamm/retention_leakage/results/fig05_accountant_m1_glfc.csv
-- /data/islamm/retention_leakage/results/fig05_accountant_m2_target.csv
-- /data/islamm/retention_leakage/results/fig05_accountant_m3_fot.csv
-- /data/islamm/retention_leakage/results/fig05_accountant_m4_proto.csv
-- /data/islamm/retention_leakage/results/fig05_accountant_m5_hybrid_replay.csv
-- /data/islamm/retention_leakage/results/fig05_accountant_m8_analytic.csv
-- /data/islamm/retention_leakage/results/fig05_m9.csv
+- <repo>/results/fig05_accountant_m0_fedavg.csv
+- <repo>/results/fig05_accountant_m1_glfc.csv
+- <repo>/results/fig05_accountant_m2_target.csv
+- <repo>/results/fig05_accountant_m3_fot.csv
+- <repo>/results/fig05_accountant_m4_proto.csv
+- <repo>/results/fig05_accountant_m5_hybrid_replay.csv
+- <repo>/results/fig05_accountant_m8_analytic.csv
+- <repo>/results/fig05_m9.csv

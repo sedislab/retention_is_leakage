@@ -330,7 +330,7 @@ def _call_run_shadow_range(dataset, method, start, count, out_dir, config, queue
 
 
 def test_concurrent_array_tasks_do_not_race_on_targets_json(tmp_path):
-    """Regression test for a real failure found on Kodiak (job 157138): two PBS array tasks writing
+    """Regression test for a real failure found on the cluster (job 157138): two PBS array tasks writing
     the shared `targets.json` convenience file via the *same* `.tmp` name raced, and one task's
     `os.replace` deleted the file out from under the other's, raising `FileNotFoundError`. Simulates
     that by running several `run_shadow_range` calls against the same `out_dir` as separate processes,

@@ -1,5 +1,0 @@
-dataset: cifar100
-n_tasks: 10
-purpose: FIG05 eps(T) on real ledgers
-seed: 0
-sigma: 2.0

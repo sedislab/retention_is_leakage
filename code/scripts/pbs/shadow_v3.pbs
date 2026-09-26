@@ -5,13 +5,13 @@
 #PBS -l walltime=04:00:00
 #PBS -J 0-575%40
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/logs/
+#PBS -o logs/
 set -euo pipefail
-cd /data/islamm/retention_leakage/code
+cd $PBS_O_WORKDIR/code
 
 module purge
 module load python/3.10.4
-source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+source $PBS_O_WORKDIR/envs/p3fcl/bin/activate
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
@@ -21,7 +21,7 @@ export OPENBLAS_NUM_THREADS=1
 # row, so array index i is TSV line i+2. Walltime above is a placeholder until the pilot (6 subjobs,
 # one per method on the largest dataset) measures a real per-chunk time; set it to 3x that before
 # submitting the full array, per the plan's "pilot first" protocol.
-MANIFEST=${MANIFEST:-/data/islamm/retention_leakage/build/waves/v3_main.tsv}
+MANIFEST=${MANIFEST:-$PBS_O_WORKDIR/build/waves/v3_main.tsv}
 IDX="${PBS_ARRAY_INDEX:-0}"
 LINE=$(( IDX + 2 ))
 ROW=$(sed -n "${LINE}p" "$MANIFEST")

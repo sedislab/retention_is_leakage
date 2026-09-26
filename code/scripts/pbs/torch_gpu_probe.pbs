@@ -4,9 +4,9 @@
 #PBS -l select=1:ncpus=4:ngpus=1
 #PBS -l walltime=00:10:00
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/logs/
+#PBS -o logs/
 set -uo pipefail
-cd /data/islamm/retention_leakage
+cd $PBS_O_WORKDIR
 
 module load python/3.10.4
 source envs/p3fcl/bin/activate

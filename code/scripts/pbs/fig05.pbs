@@ -4,13 +4,13 @@
 #PBS -l select=1:ncpus=4:mem=16gb
 #PBS -l walltime=01:00:00
 #PBS -j oe
-#PBS -o /data/islamm/retention_leakage/logs/
+#PBS -o logs/
 set -euo pipefail
-cd /data/islamm/retention_leakage/code
+cd $PBS_O_WORKDIR/code
 
 module purge
 module load python/3.10.4
-source /data/islamm/retention_leakage/envs/p3fcl/bin/activate
+source $PBS_O_WORKDIR/envs/p3fcl/bin/activate
 export OMP_NUM_THREADS=4
 
 python scripts/run_fig05.py

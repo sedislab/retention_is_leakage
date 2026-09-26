@@ -1,11 +1,11 @@
 {
   "camelyon17": {
     "bytes": 10654814495,
-    "caveat": "The official wilds.get_dataset(\"camelyon17\", download=True) path downloads from worksheets.codalab.org, which times out on every connection attempt from the Kodiak login node (TCP connect to 20.232.203.197:443 times out after 10s; general outbound access is otherwise fine). Worked around with a Hugging Face community re-hosting of the same WILDS release instead -- verified identical schema (image bytes, tumor label, center/hospital id 0-4, patient, node, slide, x/y coordinates) and identical per-center row counts to the official dataset card. Camelyon17 is CC0 public domain, so the re-hosting carries the same license. See code/scripts/build_camelyon17_from_hf_mirror.py and notes/2026-09-21_fig18_camelyon17.md.",
+    "caveat": "The official wilds.get_dataset(\"camelyon17\", download=True) path downloads from worksheets.codalab.org, which times out on every connection attempt from the cluster login node (TCP connect to 20.232.203.197:443 times out after 10s; general outbound access is otherwise fine). Worked around with a Hugging Face community re-hosting of the same WILDS release instead -- verified identical schema (image bytes, tumor label, center/hospital id 0-4, patient, node, slide, x/y coordinates) and identical per-center row counts to the official dataset card. Camelyon17 is CC0 public domain, so the re-hosting carries the same license. See code/scripts/build_camelyon17_from_hf_mirror.py.",
     "fetched_utc": "2026-09-15T21:24:57.795593+00:00",
     "license": "CC0 (Camelyon17 / WILDS, de-identified histopathology patches)",
     "mirrors_tried": [
-      "wilds.get_dataset(camelyon17, download=True) -> worksheets.codalab.org/rest/bundles/0xe45e15f39fb54e9d9e919556af67aabe/contents/blob/ (BLOCKED: connection timeout from Kodiak)"
+      "wilds.get_dataset(camelyon17, download=True) -> worksheets.codalab.org/rest/bundles/0xe45e15f39fb54e9d9e919556af67aabe/contents/blob/ (BLOCKED: connection timeout from the cluster)"
     ],
     "n_classes": 2,
     "n_images_full": 455954,
