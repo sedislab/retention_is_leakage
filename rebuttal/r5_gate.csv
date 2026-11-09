@@ -1,0 +1,37 @@
+dataset,seed,method,acc,m0_acc,abs_diff,tol,check,pass
+cifar100,0,m0_fedavg,0.30970000000000003,0.30970000000000003,0.0,0.0,equals results/m9_sweep M0 row,1
+cifar100,0,m0_dpsgd_u1[n/a],0.30970000000000003,0.30970000000000003,0.0,0.01,"no clip, no noise vs M0",1
+cifar100,0,m0_dpfedavg_u2[fixed_weighted],0.30970000000000003,0.30970000000000003,0.0,0.01,"no clip, no noise, w_cap=785 (no cap binds) vs M0",1
+cifar100,0,m0_dpfedavg_u2[weighted],0.30970000000000003,0.30970000000000003,0.0,0.0,"no clip, no noise vs M0",1
+cifar100,1,m0_fedavg,0.32489999999999997,0.32489999999999997,0.0,0.0,equals results/m9_sweep M0 row,1
+cifar100,1,m0_dpsgd_u1[n/a],0.32489999999999997,0.32489999999999997,0.0,0.01,"no clip, no noise vs M0",1
+cifar100,1,m0_dpfedavg_u2[fixed_weighted],0.32489999999999997,0.32489999999999997,0.0,0.01,"no clip, no noise, w_cap=818 (no cap binds) vs M0",1
+cifar100,1,m0_dpfedavg_u2[weighted],0.32489999999999997,0.32489999999999997,0.0,0.0,"no clip, no noise vs M0",1
+cifar100,2,m0_fedavg,0.363,0.363,0.0,0.0,equals results/m9_sweep M0 row,1
+cifar100,2,m0_dpsgd_u1[n/a],0.363,0.363,0.0,0.01,"no clip, no noise vs M0",1
+cifar100,2,m0_dpfedavg_u2[fixed_weighted],0.363,0.363,0.0,0.01,"no clip, no noise, w_cap=818 (no cap binds) vs M0",1
+cifar100,2,m0_dpfedavg_u2[weighted],0.363,0.363,0.0,0.0,"no clip, no noise vs M0",1
+cub200,0,m0_fedavg,0.41049164641023017,0.41049164641023017,0.0,0.0,equals results/m9_sweep M0 row,1
+cub200,0,m0_dpsgd_u1[n/a],0.41049164641023017,0.41049164641023017,0.0,0.01,"no clip, no noise vs M0",1
+cub200,0,m0_dpfedavg_u2[fixed_weighted],0.41049164641023017,0.41049164641023017,0.0,0.01,"no clip, no noise, w_cap=99 (no cap binds) vs M0",1
+cub200,0,m0_dpfedavg_u2[weighted],0.41049164641023017,0.41049164641023017,0.0,0.0,"no clip, no noise vs M0",1
+cub200,1,m0_fedavg,0.4314684539919539,0.4314684539919539,0.0,0.0,equals results/m9_sweep M0 row,1
+cub200,1,m0_dpsgd_u1[n/a],0.4314684539919539,0.4314684539919539,0.0,0.01,"no clip, no noise vs M0",1
+cub200,1,m0_dpfedavg_u2[fixed_weighted],0.4314684539919539,0.4314684539919539,0.0,0.01,"no clip, no noise, w_cap=86 (no cap binds) vs M0",1
+cub200,1,m0_dpfedavg_u2[weighted],0.4314684539919539,0.4314684539919539,0.0,0.0,"no clip, no noise vs M0",1
+cub200,2,m0_fedavg,0.31673127541144375,0.31673127541144375,0.0,0.0,equals results/m9_sweep M0 row,1
+cub200,2,m0_dpsgd_u1[n/a],0.31673127541144375,0.31673127541144375,0.0,0.01,"no clip, no noise vs M0",1
+cub200,2,m0_dpfedavg_u2[fixed_weighted],0.31673127541144375,0.31673127541144375,0.0,0.01,"no clip, no noise, w_cap=90 (no cap binds) vs M0",1
+cub200,2,m0_dpfedavg_u2[weighted],0.31673127541144375,0.31673127541144375,0.0,0.0,"no clip, no noise vs M0",1
+imagenet_r,0,m0_fedavg,0.2531857778862122,0.2531857778862122,0.0,0.0,equals results/m9_sweep M0 row,1
+imagenet_r,0,m0_dpsgd_u1[n/a],0.2531857778862122,0.2531857778862122,0.0,0.01,"no clip, no noise vs M0",1
+imagenet_r,0,m0_dpfedavg_u2[fixed_weighted],0.2531857778862122,0.2531857778862122,0.0,0.01,"no clip, no noise, w_cap=518 (no cap binds) vs M0",1
+imagenet_r,0,m0_dpfedavg_u2[weighted],0.2531857778862122,0.2531857778862122,0.0,0.0,"no clip, no noise vs M0",1
+imagenet_r,1,m0_fedavg,0.22382520912567272,0.22382520912567272,0.0,0.0,equals results/m9_sweep M0 row,1
+imagenet_r,1,m0_dpsgd_u1[n/a],0.22382520912567272,0.22382520912567272,0.0,0.01,"no clip, no noise vs M0",1
+imagenet_r,1,m0_dpfedavg_u2[fixed_weighted],0.22382520912567272,0.22382520912567272,0.0,0.01,"no clip, no noise, w_cap=621 (no cap binds) vs M0",1
+imagenet_r,1,m0_dpfedavg_u2[weighted],0.22382520912567272,0.22382520912567272,0.0,0.0,"no clip, no noise vs M0",1
+imagenet_r,2,m0_fedavg,0.2669927960158835,0.2669927960158835,0.0,0.0,equals results/m9_sweep M0 row,1
+imagenet_r,2,m0_dpsgd_u1[n/a],0.2669927960158835,0.2669927960158835,0.0,0.01,"no clip, no noise vs M0",1
+imagenet_r,2,m0_dpfedavg_u2[fixed_weighted],0.2669927960158835,0.2669927960158835,0.0,0.01,"no clip, no noise, w_cap=453 (no cap binds) vs M0",1
+imagenet_r,2,m0_dpfedavg_u2[weighted],0.2669927960158835,0.2669927960158835,0.0,0.0,"no clip, no noise vs M0",1

@@ -1,0 +1,12 @@
+compared_against: results/m9_sweep_<dataset>.csv
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+purpose: rebuttal R0 seed-matched reproduction check
+seed: 0
+seeds:
+- 0
+- 1
+- 2
+tol: 1.0e-06

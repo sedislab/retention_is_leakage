@@ -1,0 +1,15 @@
+dataset: imagenet_r
+eps:
+- 1.0
+- 4.0
+- 8.0
+n_clients: 100
+n_pseudo_per_task: 50
+percentile: 95
+protocol: rebuttal/R3_PROTOCOL.md
+purpose: rebuttal R3 client scaling
+seed: 0
+seeds:
+- 0
+- 1
+- 2

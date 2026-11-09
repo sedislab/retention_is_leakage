@@ -1,0 +1,4 @@
+eps,cifar_m25_mean,cifar_all_mean,cub_paper_mean,holds_eps,m8_m25_mean,m8_all_mean,m8_stays_high,cub_source,prediction_holds
+1.0,0.03513333333333333,0.596,0.017461385879119093,1,0.8543,0.8832999999999999,1,"results/m9_sweep_cub200.csv (m9_contractive, U1, gamma=1, n_clients=10)",1
+4.0,0.18189999999999998,0.8104999999999999,0.08833134531092128,1,0.8543,0.8832999999999999,1,"results/m9_sweep_cub200.csv (m9_contractive, U1, gamma=1, n_clients=10)",1
+8.0,0.4167666666666667,0.8179666666666666,0.1612263190200517,1,0.8543,0.8832999999999999,1,"results/m9_sweep_cub200.csv (m9_contractive, U1, gamma=1, n_clients=10)",1

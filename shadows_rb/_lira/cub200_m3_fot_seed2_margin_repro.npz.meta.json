@@ -1,0 +1,17 @@
+{
+  "source_hash": "937ff9c0d6dce7b2c67d5b1633edd87a46e0f408b1f4c134833f3c07c2b56670",
+  "config_hash": "ea83f6f37d77860d",
+  "seed": 0,
+  "hostname": "n065",
+  "pbs_jobid": "263204[19].bcm11",
+  "pbs_array_index": "19",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-11-06T18:58:56.082749+00:00",
+  "torch": "2.5.1+cu121",
+  "paper_source_hash": "b1837f9f4c959727a4eb9066e96e35aeb755e33fe4b69b6655950a641f33ae65",
+  "output": "/data/islamm/retention_leakage/shadows_rb/_lira/cub200_m3_fot_seed2_margin_repro.npz",
+  "utc_end": "2026-11-06T19:10:28.975869+00:00",
+  "wall_seconds": 692.89312
+}

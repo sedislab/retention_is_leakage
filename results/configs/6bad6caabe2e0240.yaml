@@ -1,0 +1,39 @@
+cells:
+- - U1
+  - 1.0
+- - U1
+  - 2.0
+- - U1
+  - 4.0
+- - U1
+  - 8.0
+- - U1
+  - .inf
+- - U2
+  - 8.0
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+lambda_grid:
+- 0.01
+- 0.1
+- 1.0
+- 10.0
+- 100.0
+ood_source:
+  cifar100: imagenet_r
+  cub200: cifar100
+  imagenet_r: cifar100
+protocol: rebuttal/R2_PROTOCOL.md
+purpose: rebuttal R2 projection ablation
+random_p:
+- 32
+- 64
+- 128
+- 256
+seed: 0
+seeds:
+- 0
+- 1
+- 2

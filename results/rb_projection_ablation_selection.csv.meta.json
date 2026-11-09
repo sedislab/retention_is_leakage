@@ -1,0 +1,17 @@
+{
+  "source_hash": "0d3016eb07fe62c71c5c85501bcee8c36bf50817bef7d1f60ca04c8b0e322733",
+  "config_hash": "6bad6caabe2e0240",
+  "seed": 0,
+  "hostname": "n038",
+  "pbs_jobid": "263214.bcm11",
+  "pbs_array_index": null,
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-11-06T19:05:52.098193+00:00",
+  "torch": "2.5.1+cu121",
+  "paper_source_hash": "706b492cad2d0a3334f6975c0ba4ec4a7912c9202556c9b978386d5663f02028",
+  "output": "/data/islamm/retention_leakage/results/rb_projection_ablation_selection.csv",
+  "utc_end": "2026-11-06T19:47:10.711035+00:00",
+  "wall_seconds": 2478.612842
+}

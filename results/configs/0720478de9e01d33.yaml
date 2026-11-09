@@ -1,0 +1,17 @@
+amendment: R1_PROTOCOL.md amendment 1
+pairs:
+- - 0
+  - 0
+- - 1
+  - 511
+- - 2
+  - 1023
+purpose: rebuttal R1 equivalence gate
+seed: 0
+tasks:
+- 0
+- 1
+- 2
+- 3
+tol: 1.0e-10
+tol_float32_span: 1.0e-05

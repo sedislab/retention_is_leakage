@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -N sub_validate
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=24:00:00
+#PBS -q batch
+#PBS -o logs/
+#PBS -e logs/
+#PBS -j oe
+# Validate the release tree: export ONLY the tracked (indexed) files into a scratch directory and run
+# the reviewer quick-start there. Nothing under the real repo's results/figs/tables is written.
+set -uo pipefail
+cd "$PBS_O_WORKDIR"
+CHECK=/data/islamm/submission_check
+rm -rf "$CHECK"; mkdir -p "$CHECK"
+git checkout-index -a --prefix="$CHECK/repo/"
+cd "$CHECK/repo"
+echo "exported files: $(find . -type f | wc -l)"
+for step in "bash env/bootstrap.sh" "make test" "make smoke" "make figures" "make verify"; do
+  echo "=================== STEP: $step"
+  if $step; then echo "STEP OK: $step"; else echo "STEP FAILED: $step (exit $?)"; fi
+done
+echo "VALIDATION FINISHED"

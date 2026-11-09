@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -N rb_r5_nscale_cap
+#PBS -q batch
+#PBS -l select=1:ncpus=1:mem=8gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+# Rebuttal R5 DP-FedAvg baselines, mode=nscale_cap (rebuttal/R5_PROTOCOL.md). 3 dataset processes.
+cd /data/islamm/retention_leakage
+module load python/3.10.4
+source envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+python -u code/scripts/rb_r5_dp_fedavg.py nscale_cap

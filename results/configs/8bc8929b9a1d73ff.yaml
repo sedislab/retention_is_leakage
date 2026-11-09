@@ -1,0 +1,19 @@
+dataset: cifar100
+eps:
+- 1.0
+- 4.0
+- 8.0
+- .inf
+m_grid:
+- 25
+- 50
+- 120
+- 250
+- all
+protocol: rebuttal/R4_PROTOCOL.md
+purpose: rebuttal R4 examples per class
+seed: 0
+seeds:
+- 0
+- 1
+- 2

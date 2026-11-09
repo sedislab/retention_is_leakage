@@ -1,0 +1,18 @@
+calibration_key_view: full
+dataset: imagenet_r
+e_max: 6
+k_set:
+- 0
+- 1
+- 2
+- 3
+method: m2_target
+n_replicates: 2000
+protocol: rebuttal/R1_PROTOCOL.md
+purpose: rebuttal R1 LiRA scoring
+seed: 0
+seeds:
+- 0
+- 1
+- 2
+view: broadcast

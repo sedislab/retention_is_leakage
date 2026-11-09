@@ -1,0 +1,12 @@
+dataset: imagenet_r
+m2_var_floor: 1.0e-06
+m3_server_lambda: 1.0
+m3_subspace_rank: 8
+method: m2_target
+n_shadows: 1024
+protocol: rebuttal/R1_PROTOCOL.md
+purpose: rebuttal R1 release-only shadow scores
+seed: 2
+views:
+- broadcast
+- client

@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -N rb_r4_mpc
+#PBS -q batch
+#PBS -l select=1:ncpus=4:mem=32gb
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+# Rebuttal R4 accuracy vs examples per class (rebuttal/R4_PROTOCOL.md). 4 worker processes.
+cd /data/islamm/retention_leakage
+module load python/3.10.4
+source envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+python -u code/scripts/rb_r4_examples_per_class.py

@@ -1,0 +1,30 @@
+aggregation: fixed_weighted (McMahan 2018)
+datasets:
+- cifar100
+- cub200
+- imagenet_r
+delta: 1.0e-05
+epochs: 30
+eps:
+- 1.0
+- 4.0
+- 8.0
+- .inf
+gate_tol: 0.01
+lr_grid:
+- 0.1
+- 0.5
+- 1.0
+mult_grid:
+- 0.25
+- 0.5
+- 1.0
+- 2.0
+- 4.0
+protocol: rebuttal/R5_PROTOCOL.md amendment 1
+purpose: rebuttal R5 DP-FedAvg baselines (main)
+seed: 0
+seeds:
+- 0
+- 1
+- 2
