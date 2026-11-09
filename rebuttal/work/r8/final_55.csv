@@ -1,0 +1,4 @@
+cell,method,unit,dataset,n_clients,eps,lr,clip_multiplier,p,lambda,clip,w_cap,ref_val_score,on_edge,edge_axes,seed,final_avg_acc,bwt,newest_task_acc
+55,m9_contractive,U2,cifar100,1000,4.0,n/a,n/a,256,1000.0,3.946025179135607,n/a,0.7203999999999999,0,none,0,0.7172000000000001,-0.1081111111111111,0.868
+55,m9_contractive,U2,cifar100,1000,4.0,n/a,n/a,256,1000.0,3.946025179135607,n/a,0.7203999999999999,0,none,1,0.7135,-0.10644444444444445,0.714
+55,m9_contractive,U2,cifar100,1000,4.0,n/a,n/a,256,1000.0,3.946025179135607,n/a,0.7203999999999999,0,none,2,0.7277,-0.10622222222222226,0.742

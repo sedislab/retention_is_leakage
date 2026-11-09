@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -N rb_r7b_ext
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=24:00:00
+#PBS -J 0-17%18
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+# Rebuttal R7b extended test-split sensitivity (rebuttal/R7b_PROTOCOL.md), one array task per cell. 18 x 8 = 144 cores.
+cd /data/islamm/retention_leakage
+module load python/3.10.4
+source envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+python -u code/scripts/rb_r7b_sensitivity_ext.py cell "$PBS_ARRAY_INDEX"

@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -N rb_r8_cells
+#PBS -q batch
+#PBS -l select=1:ncpus=8:mem=32gb
+#PBS -l walltime=24:00:00
+#PBS -J 0-71%55
+#PBS -j oe
+#PBS -o /data/islamm/retention_leakage/logs/
+set -euo pipefail
+# Rebuttal R8 symmetric re-selection (rebuttal/R8_PROTOCOL.md). 72 cells, at most 55 x 8 = 440 cores.
+cd /data/islamm/retention_leakage
+module load python/3.10.4
+source envs/p3fcl/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+python -u code/scripts/rb_r8_reselect.py cell "$PBS_ARRAY_INDEX"

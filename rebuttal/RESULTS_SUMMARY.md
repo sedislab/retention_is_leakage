@@ -315,3 +315,148 @@ Source: `results/rb_sensitivity.csv` (all grid points × seeds: `results/rb_sens
 | m9_contractive | cifar100 | 2000 | 4.0 | 0.511 [0.507, 0.515] | 17/25 | 0.782 [0.766, 0.799] | p=256, λ=100.0 | 0.296 [0.246, 0.346] |
 | m9_contractive | cifar100 | 2000 | 8.0 | 0.537 [0.531, 0.544] | 19/25 | 0.826 [0.821, 0.830] | p=256, λ=100.0 | 0.106 [0.086, 0.126] |
 
+## R7b extended sensitivity grid for the DP baselines (sensitivity, NOT selection)
+
+Source: `results/rb_sensitivity_ext.csv` (all points × seeds: `results/rb_sensitivity_ext_grid.csv`); protocol `rebuttal/R7b_PROTOCOL.md`. **The best column is a test-oracle upper bound, not used for selection.** The best point is interior in 7/18 cells after up to 2 edge extensions. Where it is not, the true grid optimum may be higher still. The selected (reported) values are unchanged.
+
+| method | dataset | n | ε0 | selected (reported) | R7 15-pt best | R7b best (test-oracle upper bound, not used for selection) | best point | interior | ext. rounds | best BWT |
+|---|---|---|---|---|---|---|---|---|---|---|
+| m0_dpsgd_u1 | cifar100 | 10 | 1.0 | 0.068 | 0.068 | 0.223 [0.194, 0.252] | lr=0.005, mult=0.02 | yes | 2 | -0.362 |
+| m0_dpsgd_u1 | cifar100 | 10 | 4.0 | 0.145 | 0.145 | 0.611 [0.562, 0.660] | lr=0.002, mult=0.01 | no (lr_low;mult_low) | 2 | -0.178 |
+| m0_dpsgd_u1 | cifar100 | 10 | 8.0 | 0.167 | 0.167 | 0.683 [0.652, 0.714] | lr=0.002, mult=0.01 | no (lr_low;mult_low) | 2 | -0.133 |
+| m0_dpsgd_u1 | cub200 | 10 | 1.0 | 0.004 | 0.005 | 0.006 [0.001, 0.010] | lr=0.002, mult=0.05 | no (lr_low) | 2 | -0.023 |
+| m0_dpsgd_u1 | cub200 | 10 | 4.0 | 0.011 | 0.011 | 0.018 [0.010, 0.025] | lr=0.01, mult=0.02 | yes | 2 | -0.102 |
+| m0_dpsgd_u1 | cub200 | 10 | 8.0 | 0.019 | 0.019 | 0.046 [0.035, 0.058] | lr=0.01, mult=0.02 | yes | 2 | -0.231 |
+| m0_dpsgd_u1 | imagenet_r | 10 | 1.0 | 0.011 | 0.011 | 0.015 [0.014, 0.016] | lr=0.002, mult=0.05 | no (lr_low) | 2 | -0.059 |
+| m0_dpsgd_u1 | imagenet_r | 10 | 4.0 | 0.026 | 0.026 | 0.096 [0.070, 0.122] | lr=0.01, mult=0.02 | yes | 2 | -0.117 |
+| m0_dpsgd_u1 | imagenet_r | 10 | 8.0 | 0.040 | 0.040 | 0.127 [0.092, 0.163] | lr=0.002, mult=0.05 | no (lr_low) | 2 | -0.086 |
+| m0_dpfedavg_u2 | cifar100 | 10 | 1.0 | 0.012 | 0.012 | 0.012 [0.008, 0.016] | lr=0.5, mult=0.01 | no (mult_low) | 2 | -0.028 |
+| m0_dpfedavg_u2 | cifar100 | 10 | 4.0 | 0.015 | 0.016 | 0.017 [0.015, 0.019] | lr=0.01, mult=0.01 | no (mult_low) | 2 | -0.052 |
+| m0_dpfedavg_u2 | cifar100 | 10 | 8.0 | 0.020 | 0.021 | 0.023 [0.020, 0.026] | lr=0.005, mult=0.02 | yes | 2 | -0.084 |
+| m0_dpfedavg_u2 | cifar100 | 100 | 1.0 | 0.025 | 0.025 | 0.027 [0.027, 0.028] | lr=0.005, mult=0.01 | no (mult_low) | 2 | -0.101 |
+| m0_dpfedavg_u2 | cifar100 | 100 | 4.0 | 0.100 | 0.100 | 0.138 [0.126, 0.151] | lr=0.01, mult=0.25 | yes | 1 | -0.324 |
+| m0_dpfedavg_u2 | cifar100 | 100 | 8.0 | 0.172 | 0.172 | 0.315 [0.306, 0.323] | lr=0.01, mult=0.25 | yes | 1 | -0.387 |
+| m0_dpfedavg_u2 | cifar100 | 1000 | 1.0 | 0.139 | 0.139 | 0.243 [0.235, 0.250] | lr=0.002, mult=0.25 | no (lr_low) | 2 | -0.320 |
+| m0_dpfedavg_u2 | cifar100 | 1000 | 4.0 | 0.194 | 0.210 | 0.622 [0.600, 0.645] | lr=0.002, mult=0.02 | no (lr_low) | 2 | -0.152 |
+| m0_dpfedavg_u2 | cifar100 | 1000 | 8.0 | 0.193 | 0.230 | 0.696 [0.668, 0.724] | lr=0.002, mult=0.02 | no (lr_low) | 2 | -0.113 |
+
+## R8 symmetric re-selection (TEST-INFORMED DESIGN; selection on public data only)
+
+Source: `results/rb_r8_summary.csv` (per seed: `results/rb_r8.csv`; selection grid: `results/rb_r8_selection.csv`); protocol `rebuttal/R8_PROTOCOL.md`. **The wider grids and the size-matched selection federation were motivated by the test-split sensitivity results of R7/R7b**, so R8 must be reported as test-informed. Selection itself used only ref-train / ref-val. Earlier results are unchanged. 'oracle' = R7/R7b test-oracle upper bound, not used for selection (n/a where not covered). Selected points on a grid edge: 26/72.
+
+M9 vs the DP baseline under the same unit, both re-selected by the same procedure:
+
+| unit | dataset | n | ε0 | M9 [95% CI] | M9 edge | baseline [95% CI] | baseline edge | M9 − baseline |
+|---|---|---|---|---|---|---|---|---|
+| U1 | cifar100 | 10 | 1.0 | 0.694 [0.678, 0.711] | none | 0.223 [0.193, 0.252] | none | +0.471 |
+| U1 | cifar100 | 10 | 4.0 | 0.828 [0.823, 0.834] | none | 0.611 [0.562, 0.660] | none | +0.217 |
+| U1 | cifar100 | 10 | 8.0 | 0.845 [0.844, 0.846] | p_max | 0.683 [0.652, 0.714] | none | +0.162 |
+| U1 | cub200 | 10 | 1.0 | 0.022 [0.005, 0.040] | none | 0.005 [0.003, 0.008] | lr_min | +0.017 |
+| U1 | cub200 | 10 | 4.0 | 0.172 [0.153, 0.191] | none | 0.018 [0.010, 0.025] | none | +0.154 |
+| U1 | cub200 | 10 | 8.0 | 0.405 [0.368, 0.442] | none | 0.045 [0.031, 0.059] | none | +0.360 |
+| U1 | imagenet_r | 10 | 1.0 | 0.123 [0.106, 0.141] | none | 0.014 [0.013, 0.016] | lr_min | +0.109 |
+| U1 | imagenet_r | 10 | 4.0 | 0.340 [0.328, 0.352] | none | 0.097 [0.073, 0.120] | lr_min | +0.244 |
+| U1 | imagenet_r | 10 | 8.0 | 0.429 [0.419, 0.440] | none | 0.112 [0.079, 0.144] | none | +0.318 |
+| U2 | cifar100 | 10 | 1.0 | 0.015 [-0.007, 0.036] | p_min | 0.012 [0.008, 0.016] | lr_max | +0.002 |
+| U2 | cifar100 | 10 | 4.0 | 0.015 [0.000, 0.029] | p_min | 0.017 [0.014, 0.019] | none | -0.002 |
+| U2 | cifar100 | 10 | 8.0 | 0.015 [0.010, 0.021] | p_min | 0.023 [0.021, 0.025] | clip_multiplier_min | -0.008 |
+| U2 | cifar100 | 100 | 1.0 | 0.023 [0.007, 0.039] | none | 0.027 [0.026, 0.028] | clip_multiplier_min | -0.004 |
+| U2 | cifar100 | 100 | 4.0 | 0.095 [0.077, 0.112] | lambda_max | 0.132 [0.118, 0.146] | none | -0.037 |
+| U2 | cifar100 | 100 | 8.0 | 0.262 [0.246, 0.277] | none | 0.309 [0.300, 0.318] | none | -0.047 |
+| U2 | cifar100 | 500 | 1.0 | 0.130 [0.117, 0.144] | none | 0.130 [0.114, 0.145] | lr_min;clip_multiplier_min | +0.001 |
+| U2 | cifar100 | 500 | 4.0 | 0.602 [0.578, 0.625] | none | 0.531 [0.517, 0.545] | none | +0.071 |
+| U2 | cifar100 | 500 | 8.0 | 0.725 [0.707, 0.744] | none | 0.661 [0.640, 0.681] | none | +0.065 |
+| U2 | cifar100 | 1000 | 1.0 | 0.335 [0.313, 0.357] | none | 0.239 [0.229, 0.249] | lr_min | +0.096 |
+| U2 | cifar100 | 1000 | 4.0 | 0.719 [0.701, 0.738] | none | 0.620 [0.594, 0.646] | lr_min | +0.100 |
+| U2 | cifar100 | 1000 | 8.0 | 0.799 [0.786, 0.812] | none | 0.695 [0.660, 0.730] | none | +0.104 |
+| U2 | cifar100 | 2000 | 1.0 | 0.528 [0.503, 0.553] | none | 0.387 [0.370, 0.405] | none | +0.141 |
+| U2 | cifar100 | 2000 | 4.0 | 0.782 [0.766, 0.799] | none | 0.678 [0.669, 0.686] | none | +0.105 |
+| U2 | cifar100 | 2000 | 8.0 | 0.826 [0.821, 0.830] | none | 0.709 [0.703, 0.715] | lr_min | +0.117 |
+| U2 | cub200 | 10 | 1.0 | 0.004 [-0.000, 0.007] | p_min;lambda_min | 0.007 [0.000, 0.013] | lr_min;clip_multiplier_min | -0.003 |
+| U2 | cub200 | 10 | 4.0 | 0.007 [-0.003, 0.017] | none | 0.008 [0.002, 0.013] | lr_min | -0.000 |
+| U2 | cub200 | 10 | 8.0 | 0.009 [-0.002, 0.020] | none | 0.009 [0.002, 0.016] | lr_min | -0.000 |
+| U2 | cub200 | 100 | 1.0 | 0.007 [-0.002, 0.016] | p_min | 0.008 [0.001, 0.014] | none | -0.001 |
+| U2 | cub200 | 100 | 4.0 | 0.014 [0.001, 0.028] | none | 0.016 [0.006, 0.025] | none | -0.002 |
+| U2 | cub200 | 100 | 8.0 | 0.035 [0.013, 0.056] | none | 0.036 [0.013, 0.060] | none | -0.002 |
+| U2 | imagenet_r | 10 | 1.0 | 0.005 [0.003, 0.006] | lambda_min | 0.006 [0.000, 0.011] | clip_multiplier_min | -0.001 |
+| U2 | imagenet_r | 10 | 4.0 | 0.006 [0.004, 0.008] | none | 0.007 [0.002, 0.012] | lr_max;clip_multiplier_min | -0.001 |
+| U2 | imagenet_r | 10 | 8.0 | 0.005 [-0.001, 0.011] | none | 0.009 [0.003, 0.014] | clip_multiplier_min | -0.003 |
+| U2 | imagenet_r | 100 | 1.0 | 0.006 [0.001, 0.012] | none | 0.009 [0.002, 0.015] | lr_min;clip_multiplier_min | -0.002 |
+| U2 | imagenet_r | 100 | 4.0 | 0.018 [0.009, 0.027] | none | 0.022 [0.010, 0.034] | none | -0.004 |
+| U2 | imagenet_r | 100 | 8.0 | 0.054 [0.041, 0.066] | lambda_max | 0.050 [0.025, 0.075] | none | +0.004 |
+
+| method | unit | dataset | n | ε0 | selected point | final avg acc [95% CI] | BWT | edge | R3/R5/paper selected | R7/R7b oracle | oracle source |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| m0_dpsgd_u1 | U1 | cifar100 | 10 | 1.0 | lr=0.002, mult=0.05 | 0.223 [0.193, 0.252] | -0.362 | none | 0.068 | 0.223 | R7b (interior=1) |
+| m0_dpsgd_u1 | U1 | cifar100 | 10 | 4.0 | lr=0.002, mult=0.01 | 0.611 [0.562, 0.660] | -0.178 | none | 0.145 | 0.611 | R7b (interior=0) |
+| m0_dpsgd_u1 | U1 | cifar100 | 10 | 8.0 | lr=0.002, mult=0.01 | 0.683 [0.652, 0.714] | -0.133 | none | 0.167 | 0.683 | R7b (interior=0) |
+| m0_dpsgd_u1 | U1 | cub200 | 10 | 1.0 | lr=0.0005, mult=0.025 | 0.005 [0.003, 0.008] | -0.022 | lr_min | 0.004 | 0.006 | R7b (interior=0) |
+| m0_dpsgd_u1 | U1 | cub200 | 10 | 4.0 | lr=0.002, mult=0.1 | 0.018 [0.010, 0.025] | -0.101 | none | 0.011 | 0.018 | R7b (interior=1) |
+| m0_dpsgd_u1 | U1 | cub200 | 10 | 8.0 | lr=0.005, mult=0.05 | 0.045 [0.031, 0.059] | -0.240 | none | 0.019 | 0.046 | R7b (interior=1) |
+| m0_dpsgd_u1 | U1 | imagenet_r | 10 | 1.0 | lr=0.0005, mult=0.1 | 0.014 [0.013, 0.016] | -0.056 | lr_min | 0.011 | 0.015 | R7b (interior=0) |
+| m0_dpsgd_u1 | U1 | imagenet_r | 10 | 4.0 | lr=0.0005, mult=0.25 | 0.097 [0.073, 0.120] | -0.092 | lr_min | 0.026 | 0.096 | R7b (interior=1) |
+| m0_dpsgd_u1 | U1 | imagenet_r | 10 | 8.0 | lr=0.1, mult=0.01 | 0.112 [0.079, 0.144] | -0.329 | none | 0.040 | 0.127 | R7b (interior=0) |
+| m9_contractive | U1 | cifar100 | 10 | 1.0 | p=128, λ=1000.0 | 0.694 [0.678, 0.711] | -0.110 | none | 0.596 | n/a | n/a |
+| m9_contractive | U1 | cifar100 | 10 | 4.0 | p=256, λ=100.0 | 0.828 [0.823, 0.834] | -0.065 | none | 0.810 | n/a | n/a |
+| m9_contractive | U1 | cifar100 | 10 | 8.0 | p=768, λ=100.0 | 0.845 [0.844, 0.846] | -0.054 | p_max | 0.818 | n/a | n/a |
+| m9_contractive | U1 | cub200 | 10 | 1.0 | p=64, λ=1000.0 | 0.022 [0.005, 0.040] | -0.061 | none | 0.017 | n/a | n/a |
+| m9_contractive | U1 | cub200 | 10 | 4.0 | p=64, λ=100.0 | 0.172 [0.153, 0.191] | -0.291 | none | 0.088 | n/a | n/a |
+| m9_contractive | U1 | cub200 | 10 | 8.0 | p=256, λ=100.0 | 0.405 [0.368, 0.442] | -0.257 | none | 0.161 | n/a | n/a |
+| m9_contractive | U1 | imagenet_r | 10 | 1.0 | p=128, λ=1000.0 | 0.123 [0.106, 0.141] | -0.104 | none | 0.082 | n/a | n/a |
+| m9_contractive | U1 | imagenet_r | 10 | 4.0 | p=256, λ=100.0 | 0.340 [0.328, 0.352] | -0.135 | none | 0.324 | n/a | n/a |
+| m9_contractive | U1 | imagenet_r | 10 | 8.0 | p=256, λ=100.0 | 0.429 [0.419, 0.440] | -0.096 | none | 0.385 | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cifar100 | 10 | 1.0 | lr=0.5, mult=0.01 | 0.012 [0.008, 0.016] | -0.028 | lr_max | 0.012 | 0.012 | R7b (interior=0) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 10 | 4.0 | lr=0.1, mult=0.025 | 0.017 [0.014, 0.019] | -0.050 | none | 0.015 | 0.017 | R7b (interior=0) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 10 | 8.0 | lr=0.01, mult=0.005 | 0.023 [0.021, 0.025] | -0.084 | clip_multiplier_min | 0.020 | 0.023 | R7b (interior=1) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 100 | 1.0 | lr=0.005, mult=0.005 | 0.027 [0.026, 0.028] | -0.101 | clip_multiplier_min | 0.025 | 0.027 | R7b (interior=0) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 100 | 4.0 | lr=0.01, mult=0.01 | 0.132 [0.118, 0.146] | -0.265 | none | 0.100 | 0.138 | R7b (interior=1) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 100 | 8.0 | lr=0.005, mult=0.1 | 0.309 [0.300, 0.318] | -0.318 | none | 0.172 | 0.315 | R7b (interior=1) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 500 | 1.0 | lr=0.0005, mult=0.005 | 0.130 [0.114, 0.145] | -0.251 | lr_min;clip_multiplier_min | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cifar100 | 500 | 4.0 | lr=0.005, mult=0.1 | 0.531 [0.517, 0.545] | -0.238 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cifar100 | 500 | 8.0 | lr=0.002, mult=0.1 | 0.661 [0.640, 0.681] | -0.167 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cifar100 | 1000 | 1.0 | lr=0.0005, mult=0.25 | 0.239 [0.229, 0.249] | -0.304 | lr_min | 0.139 | 0.243 | R7b (interior=0) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 1000 | 4.0 | lr=0.0005, mult=0.1 | 0.620 [0.594, 0.646] | -0.167 | lr_min | 0.194 | 0.622 | R7b (interior=0) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 1000 | 8.0 | lr=0.002, mult=0.05 | 0.695 [0.660, 0.730] | -0.123 | none | 0.193 | 0.696 | R7b (interior=0) |
+| m0_dpfedavg_u2 | U2 | cifar100 | 2000 | 1.0 | lr=0.001, mult=0.1 | 0.387 [0.370, 0.405] | -0.266 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cifar100 | 2000 | 4.0 | lr=0.002, mult=0.025 | 0.678 [0.669, 0.686] | -0.120 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cifar100 | 2000 | 8.0 | lr=0.0005, mult=0.05 | 0.709 [0.703, 0.715] | -0.106 | lr_min | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cub200 | 10 | 1.0 | lr=0.0005, mult=0.005 | 0.007 [0.000, 0.013] | -0.016 | lr_min;clip_multiplier_min | 0.007 | 0.007 | R7 |
+| m0_dpfedavg_u2 | U2 | cub200 | 10 | 4.0 | lr=0.0005, mult=0.25 | 0.008 [0.002, 0.013] | -0.021 | lr_min | 0.007 | 0.007 | R7 |
+| m0_dpfedavg_u2 | U2 | cub200 | 10 | 8.0 | lr=0.0005, mult=0.1 | 0.009 [0.002, 0.016] | -0.029 | lr_min | 0.009 | 0.009 | R7 |
+| m0_dpfedavg_u2 | U2 | cub200 | 100 | 1.0 | lr=0.005, mult=0.25 | 0.008 [0.001, 0.014] | -0.025 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cub200 | 100 | 4.0 | lr=0.1, mult=0.1 | 0.016 [0.006, 0.025] | -0.105 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | cub200 | 100 | 8.0 | lr=0.01, mult=0.25 | 0.036 [0.013, 0.060] | -0.172 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | imagenet_r | 10 | 1.0 | lr=0.001, mult=0.005 | 0.006 [0.000, 0.011] | -0.011 | clip_multiplier_min | 0.005 | 0.006 | R7 |
+| m0_dpfedavg_u2 | U2 | imagenet_r | 10 | 4.0 | lr=0.5, mult=0.005 | 0.007 [0.002, 0.012] | -0.017 | lr_max;clip_multiplier_min | 0.006 | 0.006 | R7 |
+| m0_dpfedavg_u2 | U2 | imagenet_r | 10 | 8.0 | lr=0.005, mult=0.005 | 0.009 [0.003, 0.014] | -0.021 | clip_multiplier_min | 0.008 | 0.008 | R7 |
+| m0_dpfedavg_u2 | U2 | imagenet_r | 100 | 1.0 | lr=0.0005, mult=0.005 | 0.009 [0.002, 0.015] | -0.024 | lr_min;clip_multiplier_min | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | imagenet_r | 100 | 4.0 | lr=0.01, mult=1.0 | 0.022 [0.010, 0.034] | -0.104 | none | n/a | n/a | n/a |
+| m0_dpfedavg_u2 | U2 | imagenet_r | 100 | 8.0 | lr=0.005, mult=1.0 | 0.050 [0.025, 0.075] | -0.197 | none | n/a | n/a | n/a |
+| m9_contractive | U2 | cifar100 | 10 | 1.0 | p=32, λ=1.0 | 0.015 [-0.007, 0.036] | -0.022 | p_min | 0.015 | n/a | n/a |
+| m9_contractive | U2 | cifar100 | 10 | 4.0 | p=32, λ=100.0 | 0.015 [0.000, 0.029] | -0.031 | p_min | 0.015 | n/a | n/a |
+| m9_contractive | U2 | cifar100 | 10 | 8.0 | p=32, λ=1000.0 | 0.015 [0.010, 0.021] | -0.047 | p_min | 0.016 | n/a | n/a |
+| m9_contractive | U2 | cifar100 | 100 | 1.0 | p=64, λ=1000.0 | 0.023 [0.007, 0.039] | -0.068 | none | 0.017 | 0.019 | R7 |
+| m9_contractive | U2 | cifar100 | 100 | 4.0 | p=256, λ=10000.0 | 0.095 [0.077, 0.112] | -0.219 | lambda_max | 0.039 | 0.058 | R7 |
+| m9_contractive | U2 | cifar100 | 100 | 8.0 | p=128, λ=1000.0 | 0.262 [0.246, 0.277] | -0.277 | none | 0.089 | 0.141 | R7 |
+| m9_contractive | U2 | cifar100 | 500 | 1.0 | p=64, λ=1000.0 | 0.130 [0.117, 0.144] | -0.260 | none | 0.022 | 0.075 | R7 |
+| m9_contractive | U2 | cifar100 | 500 | 4.0 | p=128, λ=1000.0 | 0.602 [0.578, 0.625] | -0.155 | none | 0.284 | 0.506 | R7 |
+| m9_contractive | U2 | cifar100 | 500 | 8.0 | p=256, λ=1000.0 | 0.725 [0.707, 0.744] | -0.102 | none | 0.620 | 0.709 | R7 |
+| m9_contractive | U2 | cifar100 | 1000 | 1.0 | p=128, λ=1000.0 | 0.335 [0.313, 0.357] | -0.265 | none | 0.020 | 0.185 | R7 |
+| m9_contractive | U2 | cifar100 | 1000 | 4.0 | p=256, λ=1000.0 | 0.719 [0.701, 0.738] | -0.107 | none | 0.460 | 0.700 | R7 |
+| m9_contractive | U2 | cifar100 | 1000 | 8.0 | p=256, λ=100.0 | 0.799 [0.786, 0.812] | -0.082 | none | 0.519 | 0.799 | R7 |
+| m9_contractive | U2 | cifar100 | 2000 | 1.0 | p=128, λ=1000.0 | 0.528 [0.503, 0.553] | -0.189 | none | 0.057 | 0.393 | R7 |
+| m9_contractive | U2 | cifar100 | 2000 | 4.0 | p=256, λ=100.0 | 0.782 [0.766, 0.799] | -0.090 | none | 0.511 | 0.782 | R7 |
+| m9_contractive | U2 | cifar100 | 2000 | 8.0 | p=256, λ=100.0 | 0.826 [0.821, 0.830] | -0.067 | none | 0.537 | 0.826 | R7 |
+| m9_contractive | U2 | cub200 | 10 | 1.0 | p=32, λ=0.01 | 0.004 [-0.000, 0.007] | -0.005 | p_min;lambda_min | 0.004 | n/a | n/a |
+| m9_contractive | U2 | cub200 | 10 | 4.0 | p=64, λ=1000.0 | 0.007 [-0.003, 0.017] | -0.011 | none | 0.005 | n/a | n/a |
+| m9_contractive | U2 | cub200 | 10 | 8.0 | p=64, λ=1000.0 | 0.009 [-0.002, 0.020] | -0.013 | none | 0.007 | n/a | n/a |
+| m9_contractive | U2 | cub200 | 100 | 1.0 | p=32, λ=100.0 | 0.007 [-0.002, 0.016] | -0.009 | p_min | 0.007 | n/a | n/a |
+| m9_contractive | U2 | cub200 | 100 | 4.0 | p=64, λ=100.0 | 0.014 [0.001, 0.028] | -0.073 | none | 0.014 | n/a | n/a |
+| m9_contractive | U2 | cub200 | 100 | 8.0 | p=64, λ=100.0 | 0.035 [0.013, 0.056] | -0.155 | none | 0.035 | n/a | n/a |
+| m9_contractive | U2 | imagenet_r | 10 | 1.0 | p=128, λ=0.01 | 0.005 [0.003, 0.006] | -0.012 | lambda_min | 0.005 | n/a | n/a |
+| m9_contractive | U2 | imagenet_r | 10 | 4.0 | p=128, λ=10.0 | 0.006 [0.004, 0.008] | -0.013 | none | 0.006 | n/a | n/a |
+| m9_contractive | U2 | imagenet_r | 10 | 8.0 | p=128, λ=1000.0 | 0.005 [-0.001, 0.011] | -0.019 | none | 0.007 | n/a | n/a |
+| m9_contractive | U2 | imagenet_r | 100 | 1.0 | p=128, λ=1000.0 | 0.006 [0.001, 0.012] | -0.022 | none | 0.007 | n/a | n/a |
+| m9_contractive | U2 | imagenet_r | 100 | 4.0 | p=128, λ=1000.0 | 0.018 [0.009, 0.027] | -0.068 | none | 0.010 | n/a | n/a |
+| m9_contractive | U2 | imagenet_r | 100 | 8.0 | p=128, λ=10000.0 | 0.054 [0.041, 0.066] | -0.066 | lambda_max | 0.031 | n/a | n/a |
+

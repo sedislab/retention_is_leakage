@@ -31,3 +31,43 @@ def summarize_cell(points: list, selected_key) -> dict:
         "selected_rank": int(np.sum(means > means[i_sel]) + 1), "n_points": len(points),
         "oracle_gap": float(means[i_best] - means[i_sel]),
     }
+
+
+# ---------------------------------------------------------------- R7b edge extension (R7b_PROTOCOL.md)
+
+EXT_STEPS = {"lr_low": [0.005, 0.002], "lr_high": [2.0, 5.0], "mult_low": [0.02, 0.01], "mult_high": [8.0, 16.0]}
+
+
+def best_point(points: list) -> int:
+    """Index of the highest seed-mean accuracy; NaN ranks last; ties go to the first in `points` order."""
+    means = np.array([np.mean(p["accs"]) for p in points], dtype=float)
+    means = np.where(np.isnan(means), -np.inf, means)
+    return int(np.argmax(means))
+
+
+def edges_hit(lr: float, mult: float, lr_grid, mult_grid) -> list:
+    out = []
+    if lr == min(lr_grid):
+        out.append("lr_low")
+    if lr == max(lr_grid):
+        out.append("lr_high")
+    if mult == min(mult_grid):
+        out.append("mult_low")
+    if mult == max(mult_grid):
+        out.append("mult_high")
+    return out
+
+
+def extend_grid(lr_grid: list, mult_grid: list, edges: list, used: dict) -> tuple:
+    """One extension round: add the next unused step in each hit direction. `used` counts the steps
+    taken per direction and is updated in place. Returns the new sorted grids and the directions
+    actually extended (a direction whose steps are exhausted is not extended)."""
+    lr_grid, mult_grid, done = list(lr_grid), list(mult_grid), []
+    for e in edges:
+        if used.get(e, 0) >= len(EXT_STEPS[e]):
+            continue
+        v = EXT_STEPS[e][used.get(e, 0)]
+        used[e] = used.get(e, 0) + 1
+        (lr_grid if e.startswith("lr") else mult_grid).append(v)
+        done.append(e)
+    return sorted(set(lr_grid)), sorted(set(mult_grid)), done

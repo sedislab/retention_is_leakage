@@ -185,6 +185,52 @@ def main() -> int:
                table(["method", "dataset", "n", "ε0", "selected (reported)", "selected oracle rank", "best (test-oracle upper bound, not used for selection)",
                       "best grid point", "worst"], body), ""]
 
+    # R7b
+    r7b = rows("results/rb_sensitivity_ext.csv")
+    if r7b:
+        f3 = lambda r: f"{float(r['best_final_avg_acc_mean']):.3f} [{float(r['ci_lo']):.3f}, {float(r['ci_hi']):.3f}]"  # noqa: E731
+        body = [[r["method"], r["dataset"], r["n_clients"], r["eps"], f"{float(r['selected_reported_mean']):.3f}",
+                 f"{float(r['r7_15pt_best_mean']):.3f}", f3(r), f"lr={r['best_lr']}, mult={r['best_clip_multiplier']}",
+                 "yes" if r["interior"] == "1" else f"no ({r['edges_hit']})", r["extension_rounds"],
+                 f"{float(r['best_bwt_mean']):.3f}"] for r in r7b]
+        n_int = sum(r["interior"] == "1" for r in r7b)
+        md += ["## R7b extended sensitivity grid for the DP baselines (sensitivity, NOT selection)", "",
+               "Source: `results/rb_sensitivity_ext.csv` (all points × seeds: `results/rb_sensitivity_ext_grid.csv`); protocol "
+               "`rebuttal/R7b_PROTOCOL.md`. **The best column is a test-oracle upper bound, not used for selection.** "
+               f"The best point is interior in {n_int}/{len(r7b)} cells after up to 2 edge extensions. Where it is not, the true "
+               "grid optimum may be higher still. The selected (reported) values are unchanged.", "",
+               table(["method", "dataset", "n", "ε0", "selected (reported)", "R7 15-pt best", "R7b best (test-oracle upper bound, not used for selection)",
+                      "best point", "interior", "ext. rounds", "best BWT"], body), ""]
+
+    # R8
+    r8 = rows("results/rb_r8_summary.csv")
+    if r8:
+        fv = lambda v: "n/a" if v in ("n/a", "") else f"{float(v):.3f}"  # noqa: E731
+        ci3 = lambda r: f"{float(r['final_avg_acc_mean']):.3f} [{float(r['ci_lo']):.3f}, {float(r['ci_hi']):.3f}]"  # noqa: E731
+        idx = {(r["method"], r["unit"], r["dataset"], r["n_clients"], r["eps"]): r for r in r8}
+        pair = []
+        for (meth, unit, ds, n, e), r in idx.items():
+            if meth == "m9_contractive":
+                base = idx.get(("m0_dpsgd_u1" if unit == "U1" else "m0_dpfedavg_u2", unit, ds, n, e))
+                if base:
+                    pair.append([unit, ds, n, e, ci3(r), r["edge_axes"], ci3(base), base["edge_axes"],
+                                 f"{float(r['final_avg_acc_mean']) - float(base['final_avg_acc_mean']):+.3f}"])
+        body = []
+        for r in r8:
+            pt = f"lr={r['lr']}, mult={r['clip_multiplier']}" if r["p"] == "n/a" else f"p={r['p']}, λ={r['lambda']}"
+            body.append([r["method"], r["unit"], r["dataset"], r["n_clients"], r["eps"], pt, ci3(r), f"{float(r['bwt_mean']):.3f}",
+                         r["edge_axes"], fv(r["prev_selected_mean"]), fv(r["oracle_best_mean"]), r["oracle_source"]])
+        md += ["## R8 symmetric re-selection (TEST-INFORMED DESIGN; selection on public data only)", "",
+               "Source: `results/rb_r8_summary.csv` (per seed: `results/rb_r8.csv`; selection grid: `results/rb_r8_selection.csv`); "
+               "protocol `rebuttal/R8_PROTOCOL.md`. **The wider grids and the size-matched selection federation were motivated by the "
+               "test-split sensitivity results of R7/R7b**, so R8 must be reported as test-informed. Selection itself used only "
+               "ref-train / ref-val. Earlier results are unchanged. 'oracle' = R7/R7b test-oracle upper bound, not used for selection "
+               f"(n/a where not covered). Selected points on a grid edge: {sum(r['on_edge'] == '1' for r in r8)}/{len(r8)}.", "",
+               "M9 vs the DP baseline under the same unit, both re-selected by the same procedure:", "",
+               table(["unit", "dataset", "n", "ε0", "M9 [95% CI]", "M9 edge", "baseline [95% CI]", "baseline edge", "M9 − baseline"], pair), "",
+               table(["method", "unit", "dataset", "n", "ε0", "selected point", "final avg acc [95% CI]", "BWT", "edge",
+                      "R3/R5/paper selected", "R7/R7b oracle", "oracle source"], body), ""]
+
     OUT.write_text("\n".join(md) + "\n")
     print(f"R6 wrote {OUT} ({len(md)} blocks)")
     provenance.finalize(man, [OUT])

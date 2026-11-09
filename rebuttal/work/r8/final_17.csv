@@ -1,0 +1,4 @@
+cell,method,unit,dataset,n_clients,eps,lr,clip_multiplier,p,lambda,clip,w_cap,ref_val_score,on_edge,edge_axes,seed,final_avg_acc,bwt,newest_task_acc
+17,m9_contractive,U1,imagenet_r,10,8.0,n/a,n/a,256,100.0,1.0,n/a,0.38250361870713434,0,none,0,0.43419348234014654,-0.09164383783659147,0.47766323024054985
+17,m9_contractive,U1,imagenet_r,10,8.0,n/a,n/a,256,100.0,1.0,n/a,0.38250361870713434,0,none,1,0.4277681556165847,-0.08175050953134283,0.419672131147541
+17,m9_contractive,U1,imagenet_r,10,8.0,n/a,n/a,256,100.0,1.0,n/a,0.38250361870713434,0,none,2,0.42644270610577156,-0.11508730197567327,0.3964285714285714

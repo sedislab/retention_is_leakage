@@ -1,0 +1,4 @@
+cell,method,unit,dataset,n_clients,eps,lr,clip_multiplier,p,lambda,clip,w_cap,ref_val_score,on_edge,edge_axes,seed,final_avg_acc,bwt,newest_task_acc
+2,m0_dpsgd_u1,U1,cifar100,10,8.0,0.002,0.01,n/a,n/a,0.8786598691671245,n/a,0.6698000000000001,0,none,0,0.6969,-0.11788888888888888,0.85
+2,m0_dpsgd_u1,U1,cifar100,10,8.0,0.002,0.01,n/a,n/a,0.8786598691671245,n/a,0.6698000000000001,0,none,1,0.6726,-0.1403333333333333,0.761
+2,m0_dpsgd_u1,U1,cifar100,10,8.0,0.002,0.01,n/a,n/a,0.8786598691671245,n/a,0.6698000000000001,0,none,2,0.6793,-0.14133333333333337,0.782

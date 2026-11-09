@@ -1,0 +1,41 @@
+cell: 54
+dataset: cifar100
+eps: 1.0
+lambda_grid:
+- 0.01
+- 0.1
+- 1.0
+- 10.0
+- 100.0
+- 1000.0
+- 10000.0
+lr_grid:
+- 0.0005
+- 0.001
+- 0.002
+- 0.005
+- 0.01
+- 0.05
+- 0.1
+- 0.5
+method: m9_contractive
+mult_grid:
+- 0.005
+- 0.01
+- 0.025
+- 0.05
+- 0.1
+- 0.25
+- 1.0
+- 4.0
+n_clients: 1000
+p_grid:
+- 32
+- 64
+- 128
+- 256
+- 768
+protocol: rebuttal/R8_PROTOCOL.md
+purpose: rebuttal R8 symmetric re-selection (test-informed design, public selection)
+seed: 0
+unit: U2

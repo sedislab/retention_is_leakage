@@ -1,0 +1,5 @@
+dataset,n_clients,w_cap,percentile,n_pseudo_clients,median_size,max_size,cap_seeds,n_train_public
+cifar100,500,15.0,95,99806,8.0,34,1000-1019,40000
+cifar100,2000,4.0,95,351826,2.0,12,1000-1019,40000
+cub200,100,9.0,95,19710,5.0,25,1000-1019,4994
+imagenet_r,100,40.0,95,20000,23.0,83,1000-1019,23918

@@ -1,0 +1,24 @@
+cell: 7
+dataset: imagenet_r
+eps: 4.0
+lr_base:
+- 0.01
+- 0.02
+- 0.05
+- 0.1
+- 0.5
+- 1.0
+max_rounds: 2
+method: m0_dpsgd_u1
+mult_base:
+- 0.05
+- 0.1
+- 0.25
+- 0.5
+- 1.0
+- 2.0
+- 4.0
+n_clients: 10
+protocol: rebuttal/R7b_PROTOCOL.md
+purpose: rebuttal R7b extended sensitivity (not selection)
+seed: 0

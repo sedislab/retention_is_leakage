@@ -1,0 +1,17 @@
+{
+  "source_hash": "6d1f6ea952d0f1877c31f4f171f2bbd592afbb4eeb8b400c81f46931bf4f45af",
+  "config_hash": "5923617200b14e80",
+  "seed": 0,
+  "hostname": "n069",
+  "pbs_jobid": "268997[6].bcm11",
+  "pbs_array_index": "6",
+  "python": "3.10.4",
+  "numpy": "1.26.4",
+  "user": "islamm",
+  "utc_start": "2026-11-09T19:43:27.968474+00:00",
+  "torch": "2.5.1+cu121",
+  "paper_source_hash": "6e55b1316f881f2e7d1ca097e49f768972fe4a0463b287264235a86f71f3fbeb",
+  "output": "/data/islamm/retention_leakage/rebuttal/work/r7b/summary_06.csv",
+  "utc_end": "2026-11-09T19:52:49.809459+00:00",
+  "wall_seconds": 561.840985
+}

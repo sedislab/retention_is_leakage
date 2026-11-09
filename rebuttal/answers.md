@@ -44,10 +44,11 @@ shrink, and the arm could not show the expected gain.
 
 A related point found while reading, to be quantified in R3: the pseudo-clients are built from
 `ref-train`, which is half of `ref` (`_ref_train_val_split`, `frac = 0.5`, lines 53–63). So even at
-n = 10 they are much smaller than the real clients. The mean pseudo-client sizes are about 50 / 5 / 15
-examples (CIFAR-100 / CUB-200 / ImageNet-R: 5,000 / 500 / ~1,544 ref-train examples over 10 × 10).
+n = 10 they are much smaller than the real clients. The mean pseudo-client sizes are about 50 / 4 / 15
+examples (CIFAR-100 / CUB-200 / ImageNet-R: 5,000 / 400 / 1,544 ref-train examples over 10 × 10; corrected 2026-11-09,
+CUB ref-train is 400, not 500).
 The mean real client sizes are about 400 / 50 / 239 (40,000 / 4,994 / 23,918 train examples over
-10 × 10). That is a factor of about 8–15. So the paper's U2 runs at n = 10 probably clip most real
+10 × 10). That is a factor of about 8–16. So the paper's U2 runs at n = 10 probably clip most real
 clients well below their norm. R3's size-matched C(n) also covers n = 10, so its n = 10 row tests
 this directly.
 
