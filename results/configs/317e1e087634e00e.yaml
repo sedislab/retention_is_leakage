@@ -1,0 +1,12 @@
+cell: 17
+dataset: cifar100
+eps: 4.0
+method: m0_dpfedavg_u2
+n_clients: 100
+protocol: rebuttal/R7_PROTOCOL.md
+purpose: rebuttal R7 test-split sensitivity (not selection)
+seed: 0
+seeds:
+- 0
+- 1
+- 2

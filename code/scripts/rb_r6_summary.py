@@ -164,6 +164,27 @@ def main() -> int:
     md += [
            table(["dataset", "method", "n", "ε0", "final avg acc [95% CI]", "BWT [95% CI]", "newest-task acc [95% CI]"], body) if body else "_pending_", ""]
 
+    # R7
+    r7 = rows("results/rb_sensitivity.csv")
+    if r7:
+        cells = {}
+        for r in r7:
+            cells.setdefault((r["method"], r["dataset"], r["n_clients"], r["eps"]), {})[r["role"]] = r
+        body = []
+        for k, v in cells.items():
+            b = v["best"]
+            pt = f"lr={b['lr']}, mult={b['clip_multiplier']}" if b["p"] == "n/a" else f"p={b['p']}, λ={b['lambda']}"
+            f3 = lambda x: f"{float(x['final_avg_acc_mean']):.3f} [{float(x['ci_lo']):.3f}, {float(x['ci_hi']):.3f}]"  # noqa: E731
+            body.append(list(k) + [f3(v["selected"]), f"{v['selected']['selected_rank_oracle']}/{v['selected']['n_grid_points']}",
+                                   f3(b), pt, f3(v["worst"])])
+        n_match = sum(r["selected_rerun_matches_reported"] == "1" for r in r7 if r["role"] == "selected")
+        md += ["## R7 test-split sensitivity of the selection grids (sensitivity, NOT selection)", "",
+               "Source: `results/rb_sensitivity.csv` (all grid points × seeds: `results/rb_sensitivity_grid.csv`); protocol "
+               "`rebuttal/R7_PROTOCOL.md`. **The 'best' column is a test-oracle upper bound, not used for selection.** Reported results "
+               f"are unchanged; the rerun of every selected point equals the reported value bit for bit ({n_match}/{len(cells)} cells).", "",
+               table(["method", "dataset", "n", "ε0", "selected (reported)", "selected oracle rank", "best (test-oracle upper bound, not used for selection)",
+                      "best grid point", "worst"], body), ""]
+
     OUT.write_text("\n".join(md) + "\n")
     print(f"R6 wrote {OUT} ({len(md)} blocks)")
     provenance.finalize(man, [OUT])

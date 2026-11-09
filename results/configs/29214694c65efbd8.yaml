@@ -1,0 +1,12 @@
+cell: 38
+dataset: cifar100
+eps: 1.0
+method: m9_contractive
+n_clients: 1000
+protocol: rebuttal/R7_PROTOCOL.md
+purpose: rebuttal R7 test-split sensitivity (not selection)
+seed: 0
+seeds:
+- 0
+- 1
+- 2

@@ -1,0 +1,12 @@
+cell: 9
+dataset: imagenet_r
+eps: 4.0
+method: m0_dpsgd_u1
+n_clients: 10
+protocol: rebuttal/R7_PROTOCOL.md
+purpose: rebuttal R7 test-split sensitivity (not selection)
+seed: 0
+seeds:
+- 0
+- 1
+- 2
